@@ -23,9 +23,9 @@ export default function SportTabs({ activeSport, onSportSelect }: SportTabsProps
         <button
           key={sport.id}
           onClick={() => onSportSelect(sport.id)}
-          className={`flex items-center space-x-2 px-6 py-3 rounded-md font-medium whitespace-nowrap transition-colors ${
+          className={`group flex items-center space-x-2 px-6 py-3 rounded-md font-medium whitespace-nowrap transition-colors ${
             activeSport === sport.id
-              ? 'bg-[var(--color-accent-blue)] text-white shadow-md'
+              ? 'active bg-[var(--color-accent-blue)] text-white shadow-md'
               : 'bg-[var(--color-sidebar-bg)] text-[var(--color-text-muted)] border border-[var(--color-border)] hover:text-white hover:bg-[var(--color-card-hover)]'
           }`}
         >

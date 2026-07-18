@@ -12,7 +12,8 @@ export default function EsportsPage() {
       heroSubtitle="CS2, League of Legends, Dota 2, Valorant and more competitive gaming markets"
       featuredMatch={esportsMatches[0]} // NaVi vs Vitality - live
       matches={esportsMatches}
-      league="CS2 • LoL • Dota 2 • Valorant • BLAST"
+      league="CS2 • LoL • Valorant • Dota 2"
+      backgroundImage="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop"
     />
   );
 }

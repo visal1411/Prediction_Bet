@@ -12,7 +12,8 @@ export default function RacingPage() {
       heroSubtitle="Formula 1, MotoGP, NASCAR and all major motorsport betting events"
       featuredMatch={racingMatches[0]} // F1 British GP - live
       matches={racingMatches}
-      league="Formula 1 • MotoGP • NASCAR • IndyCar • WRC"
+      league="F1 • MotoGP • NASCAR"
+      backgroundImage="https://images.unsplash.com/photo-1502224562085-639556652f33?q=80&w=2064&auto=format&fit=crop"
     />
   );
 }

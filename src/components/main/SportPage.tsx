@@ -5,16 +5,17 @@ import { useBetSlip } from '../../context/BetSlipContext';
 
 interface SportPageProps {
   sport: string;
-  icon: string;
+  icon: React.ReactNode;
   accentColor: string;
   heroTitle: string;
   heroSubtitle: string;
   featuredMatch?: Match;
   matches: Match[];
   league: string;
+  backgroundImage?: string;
 }
 
-export default function SportPage({ sport, icon, accentColor, heroTitle, heroSubtitle, featuredMatch, matches, league }: SportPageProps) {
+export default function SportPage({ sport, icon, accentColor, heroTitle, heroSubtitle, featuredMatch, matches, league, backgroundImage }: SportPageProps) {
   const navigate = useNavigate();
   const { addBet, isOpen, toggleOpen } = useBetSlip();
 
@@ -50,8 +51,14 @@ export default function SportPage({ sport, icon, accentColor, heroTitle, heroSub
         className="relative w-full rounded-2xl overflow-hidden mb-8 shadow-2xl"
         style={{ minHeight: '220px' }}
       >
+        {backgroundImage && (
+          <div
+            className="absolute inset-0 bg-cover bg-center z-0 opacity-40"
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+          />
+        )}
         <div
-          className="absolute inset-0 z-0 opacity-20"
+          className="absolute inset-0 z-0 opacity-30"
           style={{
             background: `radial-gradient(ellipse at 60% 50%, ${accentColor} 0%, transparent 70%)`,
           }}
@@ -88,13 +95,13 @@ export default function SportPage({ sport, icon, accentColor, heroTitle, heroSub
               </div>
 
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={handlePlaceBet}
                   className="bg-white hover:bg-gray-200 text-[var(--color-primary-bg)] font-bold px-5 py-2.5 rounded-lg transition-colors text-sm shadow"
                 >
                   PLACE BET
                 </button>
-                <button 
+                <button
                   onClick={handleViewEvent}
                   className="border border-gray-500 hover:border-white text-white font-medium px-5 py-2.5 rounded-lg transition-colors text-sm"
                 >
@@ -115,7 +122,7 @@ export default function SportPage({ sport, icon, accentColor, heroTitle, heroSub
           </span>
         </div>
         <div className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-lg px-5 py-3 flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${upcomingMatchesList.length > 0 ? 'bg-[var(--color-accent-blue)]' : 'bg-yellow-500'}`} />
+          <span className={`w-2 h-2 rounded-full ${upcomingMatchesList.length > 0 ? 'bg-[var(--color-accent-blue)]' : 'bg-[var(--color-accent-blue)] opacity-40'}`} />
           <span className="text-white font-semibold text-sm">
             {upcomingMatchesList.length} Upcoming
           </span>

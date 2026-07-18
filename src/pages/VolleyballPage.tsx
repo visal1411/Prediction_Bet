@@ -13,7 +13,8 @@ export default function VolleyballPage() {
       heroSubtitle="FIVB World League, Olympics, and top club volleyball betting"
       featuredMatch={volleyballMatches[0]} // Brazil vs Poland - live
       matches={volleyballMatches}
-      league="FIVB • Olympics • CEV Champions League • NCAA"
+      league="FIVB • CEV • Pro Leagues"
+      backgroundImage="https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=2007&auto=format&fit=crop"
     />
   );
 }

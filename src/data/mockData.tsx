@@ -13,11 +13,11 @@ export const sportsCategories = [
 ];
 
 export const sportTabCategories = [
-  { id: 'football', name: 'Football', icon: <img src={footballIcon} alt="Football" className="w-6 h-6 object-contain brightness-0 invert" />, path: '/football' },
-  { id: 'basketball', name: 'Basketball', icon: <img src={basketballIcon} alt="Basketball" className="w-6 h-6 object-contain brightness-0 invert" />, path: '/basketball' },
-  { id: 'tennis', name: 'Tennis', icon: <img src={tennisIcon} alt="Tennis" className="w-6 h-6 object-contain brightness-0 invert" />, path: '/tennis' },
-  { id: 'racing', name: 'Racing', icon: <img src={racingIcon} alt="Racing" className="w-6 h-6 object-contain brightness-0 invert" />, path: '/racing' },
-  { id: 'esports', name: 'Esports', icon: <img src={esportIcon} alt="Esports" className="w-6 h-6 object-contain brightness-0 invert" />, path: '/esports' },
+  { id: 'football', name: 'Football', icon: <img src={footballIcon} alt="Football" className="w-6 h-6 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/football' },
+  { id: 'basketball', name: 'Basketball', icon: <img src={basketballIcon} alt="Basketball" className="w-6 h-6 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/basketball' },
+  { id: 'tennis', name: 'Tennis', icon: <img src={tennisIcon} alt="Tennis" className="w-6 h-6 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/tennis' },
+  { id: 'racing', name: 'Racing', icon: <img src={racingIcon} alt="Racing" className="w-6 h-6 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/racing' },
+  { id: 'esports', name: 'Esports', icon: <img src={esportIcon} alt="Esports" className="w-6 h-6 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/esports' },
 ];
 
 export interface Match {

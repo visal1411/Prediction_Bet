@@ -7,7 +7,7 @@ interface UpcomingMatchesProps {
 
 export default function UpcomingMatches({ sportFilter = 'all' }: UpcomingMatchesProps) {
   const navigate = useNavigate();
-  
+
   let matches = allMatches.filter(m => !m.isLive);
   if (sportFilter !== 'all') {
     matches = matches.filter(m => m.sport?.toLowerCase() === sportFilter.toLowerCase());
@@ -18,7 +18,7 @@ export default function UpcomingMatches({ sportFilter = 'all' }: UpcomingMatches
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <h2 className="text-2xl font-bold text-white tracking-wide">Upcoming Matches</h2>
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-sm ${matches.length > 0 ? 'bg-[var(--color-border)] text-[var(--color-text-muted)]' : 'bg-yellow-500/20 text-yellow-500'}`}>
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-sm ${matches.length > 0 ? 'bg-[var(--color-border)] text-[var(--color-text-muted)]' : 'bg-[var(--color-accent-blue)]/20 text-[var(--color-accent-blue)]'}`}>
             {matches.length} EVENTS
           </span>
         </div>

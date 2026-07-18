@@ -12,6 +12,7 @@ import EsportsPage from './pages/EsportsPage';
 import MatchDetailPage from './pages/MatchDetailPage';
 import LivePage from './pages/LivePage';
 import MyBetsPage from './pages/MyBetsPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/live" element={<LivePage />} />
               <Route path="/my-bets" element={<MyBetsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/football" element={<FootballPage />} />
               <Route path="/basketball" element={<BasketballPage />} />
               <Route path="/tennis" element={<TennisPage />} />

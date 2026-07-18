@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, X } from 'lucide-react';
 import { getMatchDetail } from '../data/matchDetailData';
 import { useState } from 'react';
 import { useBetSlip } from '../context/BetSlipContext';
@@ -45,8 +45,19 @@ export default function MatchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const detail = getMatchDetail(Number(id));
-  const { addBet, hasBet } = useBetSlip();
+  const { addBet, hasBet, isOpen, toggleOpen, updateStake } = useBetSlip();
   const [expandedMarket, setExpandedMarket] = useState<string | null>('Full Time Result');
+  const [showBetModal, setShowBetModal] = useState(false);
+  const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
+  const [modalStake, setModalStake] = useState<number>(10);
+
+  const closeBetModal = () => {
+    setShowBetModal(false);
+    setTimeout(() => {
+      setSelectedPrediction(null);
+      setModalStake(10);
+    }, 300);
+  };
 
   if (!detail) {
     return (
@@ -147,6 +158,15 @@ export default function MatchDetailPage() {
               <span>{venue}</span>
             </div>
           </div>
+          
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => setShowBetModal(true)}
+              className="bg-white hover:bg-gray-200 text-[var(--color-primary-bg)] font-bold px-5 py-2.5 rounded-lg transition-colors text-sm shadow"
+            >
+              BET NOW
+            </button>
+          </div>
         </div>
       </div>
 
@@ -246,7 +266,7 @@ export default function MatchDetailPage() {
         </div>
 
         {/* Right col — Markets */}
-        <div className="space-y-4">
+        <div id="markets-section" className="space-y-4">
           {/* Betting Markets */}
           {markets.map(market => (
             <div key={market.title} className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-xl overflow-hidden">
@@ -300,6 +320,106 @@ export default function MatchDetailPage() {
           ))}
         </div>
       </div>
+
+      {/* Bet Modal */}
+      {showBetModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeBetModal} />
+          <div className="relative bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={closeBetModal}
+              className="absolute top-4 right-4 text-[var(--color-text-muted)] hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-bold text-white mb-2">Quick Bet</h3>
+            <p className="text-[var(--color-text-muted)] text-sm mb-6">Select your prediction for Match Winner.</p>
+            
+            <div className={`grid gap-3 ${match.odds.draw !== null ? 'grid-cols-3' : 'grid-cols-2'} ${selectedPrediction ? 'mb-6' : ''}`}>
+              {[
+                { label: team1.shortName + ' Win', optLabel: match.team1, odds: match.odds.win1, idSuffix: 'win1' },
+                { label: 'Draw', optLabel: 'Draw', odds: match.odds.draw, idSuffix: 'draw' },
+                { label: team2.shortName + ' Win', optLabel: match.team2, odds: match.odds.win2, idSuffix: 'win2' },
+              ].map(opt => {
+                if (opt.odds === null || opt.odds === undefined) return null;
+                const isSelected = selectedPrediction?.idSuffix === opt.idSuffix;
+                return (
+                  <button
+                    key={opt.label}
+                    onClick={() => setSelectedPrediction(opt)}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)] text-white shadow-lg shadow-blue-500/20'
+                        : 'bg-[var(--color-primary-bg)] border-[var(--color-border)] hover:border-gray-500 text-[var(--color-text-muted)] hover:text-white'
+                    }`}
+                  >
+                    <span className="text-xs uppercase tracking-wider mb-1 font-medium">{opt.label}</span>
+                    <span className="font-black text-lg text-white">{opt.odds.toFixed(2)}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedPrediction && (
+              <div className="border-t border-[var(--color-border)] pt-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[var(--color-text-muted)] text-sm">Stake Amount</span>
+                  <span className="text-[var(--color-accent-green)] font-bold">
+                    To Win: ${(modalStake * selectedPrediction.odds).toFixed(2)}
+                  </span>
+                </div>
+                
+                <div className="flex items-center bg-[var(--color-primary-bg)] border border-[var(--color-border)] rounded-xl overflow-hidden mb-4">
+                  <span className="text-[var(--color-text-muted)] px-4 font-bold">$</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={modalStake}
+                    onChange={e => setModalStake(Math.max(1, Number(e.target.value)))}
+                    className="flex-1 bg-transparent text-white font-black text-lg py-3 pr-4 outline-none"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {[5, 10, 25, 50].map(amt => (
+                    <button
+                      key={amt}
+                      onClick={() => setModalStake(amt)}
+                      className={`py-2 rounded-lg text-sm font-bold transition-colors ${
+                        modalStake === amt
+                          ? 'bg-white text-black'
+                          : 'bg-[var(--color-primary-bg)] text-[var(--color-text-muted)] hover:text-white hover:bg-[var(--color-card-hover)]'
+                      }`}
+                    >
+                      ${amt}
+                    </button>
+                  ))}
+                </div>
+                
+                <button
+                  onClick={() => {
+                    const betId = `match-${detail.id}-${selectedPrediction.idSuffix}`;
+                    addBet({
+                      id: betId,
+                      matchId: detail.id,
+                      matchLabel: `${team1.name} vs ${team2.name}`,
+                      sport: match.sport ? match.sport.toUpperCase() : 'FOOTBALL',
+                      market: 'Match Winner',
+                      selection: selectedPrediction.optLabel,
+                      odds: selectedPrediction.odds
+                    });
+                    updateStake(betId, modalStake);
+                    closeBetModal();
+                  }}
+                  className="w-full bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] text-[var(--color-sidebar-bg)] font-black py-4 rounded-xl transition-all duration-200 text-sm tracking-wide shadow-lg shadow-green-500/20 active:scale-95"
+                >
+                  CONFIRM BET
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,7 +12,8 @@ export default function TennisPage() {
       heroSubtitle="ATP, WTA and Grand Slam live betting – every set, every point"
       featuredMatch={tennisMatches[0]} // Alcaraz vs Djokovic - live
       matches={tennisMatches}
-      league="ATP • WTA • Grand Slams • ITF"
+      league="ATP • WTA • Grand Slam"
+      backgroundImage="https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=2072&auto=format&fit=crop"
     />
   );
 }

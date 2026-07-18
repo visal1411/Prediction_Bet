@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router';
-import { Settings, HelpCircle } from 'lucide-react';
+import { Settings, HelpCircle, User } from 'lucide-react';
 import footballIcon from '../icons/football_icon.png';
 import basketballIcon from '../icons/basketball_icon.png';
 import tennisIcon from '../icons/tennis_icon.png';
@@ -9,12 +9,12 @@ import esportIcon from '../icons/e-sport_icon.png';
 import sportLobbyIcon from '../icons/sportLobby_icon.png';
 
 const sports = [
-  { id: 'football', name: 'Football', icon: <img src={footballIcon} alt="Football" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/football' },
-  { id: 'basketball', name: 'Basketball', icon: <img src={basketballIcon} alt="Basketball" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/basketball' },
-  { id: 'tennis', name: 'Tennis', icon: <img src={tennisIcon} alt="Tennis" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/tennis' },
-  { id: 'volleyball', name: 'Volleyball', icon: <img src={volleyballIcon} alt="Volleyball" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/volleyball' },
-  { id: 'racing', name: 'Racing', icon: <img src={racingIcon} alt="Racing" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/racing' },
-  { id: 'esports', name: 'Esports', icon: <img src={esportIcon} alt="Esports" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/esports' },
+  { id: 'football', name: 'Football', icon: <img src={footballIcon} alt="Football" className="w-5 h-5 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/football' },
+  { id: 'basketball', name: 'Basketball', icon: <img src={basketballIcon} alt="Basketball" className="w-5 h-5 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/basketball' },
+  { id: 'tennis', name: 'Tennis', icon: <img src={tennisIcon} alt="Tennis" className="w-5 h-5 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/tennis' },
+  { id: 'volleyball', name: 'Volleyball', icon: <img src={volleyballIcon} alt="Volleyball" className="w-5 h-5 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/volleyball' },
+  { id: 'racing', name: 'Racing', icon: <img src={racingIcon} alt="Racing" className="w-5 h-5 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/racing' },
+  { id: 'esports', name: 'Esports', icon: <img src={esportIcon} alt="Esports" className="w-5 h-5 object-contain brightness-0 invert opacity-60 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity" />, path: '/esports' },
 ];
 
 export default function SportsLobby() {
@@ -39,8 +39,8 @@ export default function SportsLobby() {
               <NavLink
                 to={sport.path}
                 className={({ isActive }) =>
-                  `w-full flex items-center space-x-4 px-4 py-3 rounded-lg transition-colors ${isActive
-                    ? 'bg-[var(--color-accent-blue)] text-white'
+                  `group w-full flex items-center space-x-4 px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? 'active bg-[var(--color-accent-blue)] text-white'
                     : 'text-[var(--color-text-muted)] hover:bg-[var(--color-card-hover)] hover:text-white'
                   }`
                 }
@@ -54,6 +54,18 @@ export default function SportsLobby() {
       </div>
 
       <div className="p-4 border-t border-[var(--color-border)] space-y-2">
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `w-full flex items-center space-x-4 px-4 py-3 rounded-lg transition-colors ${isActive
+              ? 'bg-[var(--color-accent-blue)] text-white'
+              : 'text-[var(--color-text-muted)] hover:bg-[var(--color-card-hover)] hover:text-white'
+            }`
+          }
+        >
+          <User size={20} />
+          <span className="font-medium">Profile</span>
+        </NavLink>
         <button className="w-full flex items-center space-x-4 px-4 py-3 text-[var(--color-text-muted)] hover:bg-[var(--color-card-hover)] hover:text-white rounded-lg transition-colors">
           <Settings size={20} />
           <span className="font-medium">Settings</span>
