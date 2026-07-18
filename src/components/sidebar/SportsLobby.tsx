@@ -1,13 +1,20 @@
 import { NavLink } from 'react-router';
 import { Settings, HelpCircle } from 'lucide-react';
+import footballIcon from '../icons/football_icon.png';
+import basketballIcon from '../icons/basketball_icon.png';
+import tennisIcon from '../icons/tennis_icon.png';
+import volleyballIcon from '../icons/volleyball_icon.png';
+import racingIcon from '../icons/racing_icon.png';
+import esportIcon from '../icons/e-sport_icon.png';
+import sportLobbyIcon from '../icons/sportLobby_icon.png';
 
 const sports = [
-  { id: 'football', name: 'Football', icon: '⚽', path: '/football' },
-  { id: 'basketball', name: 'Basketball', icon: '🏀', path: '/basketball' },
-  { id: 'tennis', name: 'Tennis', icon: '🎾', path: '/tennis' },
-  { id: 'cricket', name: 'Cricket', icon: '🏏', path: '/cricket' },
-  { id: 'ice_hockey', name: 'Ice Hockey', icon: '🏒', path: '/ice-hockey' },
-  { id: 'volleyball', name: 'Volleyball', icon: '🏐', path: '/volleyball' },
+  { id: 'football', name: 'Football', icon: <img src={footballIcon} alt="Football" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/football' },
+  { id: 'basketball', name: 'Basketball', icon: <img src={basketballIcon} alt="Basketball" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/basketball' },
+  { id: 'tennis', name: 'Tennis', icon: <img src={tennisIcon} alt="Tennis" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/tennis' },
+  { id: 'volleyball', name: 'Volleyball', icon: <img src={volleyballIcon} alt="Volleyball" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/volleyball' },
+  { id: 'racing', name: 'Racing', icon: <img src={racingIcon} alt="Racing" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/racing' },
+  { id: 'esports', name: 'Esports', icon: <img src={esportIcon} alt="Esports" className="w-5 h-5 object-contain brightness-0 invert" />, path: '/esports' },
 ];
 
 export default function SportsLobby() {
@@ -16,7 +23,7 @@ export default function SportsLobby() {
       <div className="p-6 border-b border-[var(--color-border)] mb-4">
         <NavLink to="/" className="flex items-center space-x-3">
           <div className="bg-[var(--color-accent-blue)] w-10 h-10 rounded-md flex items-center justify-center">
-            <span className="text-2xl leading-none">🏆</span>
+            <img src={sportLobbyIcon} alt="Sports Lobby" className="w-6 h-6 object-contain brightness-0 invert" />
           </div>
           <div>
             <h2 className="text-white font-semibold">Sports Lobby</h2>

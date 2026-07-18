@@ -6,8 +6,6 @@ import HomePage from './pages/HomePage';
 import FootballPage from './pages/FootballPage';
 import BasketballPage from './pages/BasketballPage';
 import TennisPage from './pages/TennisPage';
-import CricketPage from './pages/CricketPage';
-import IceHockeyPage from './pages/IceHockeyPage';
 import VolleyballPage from './pages/VolleyballPage';
 import RacingPage from './pages/RacingPage';
 import EsportsPage from './pages/EsportsPage';
@@ -28,8 +26,6 @@ function App() {
               <Route path="/football" element={<FootballPage />} />
               <Route path="/basketball" element={<BasketballPage />} />
               <Route path="/tennis" element={<TennisPage />} />
-              <Route path="/cricket" element={<CricketPage />} />
-              <Route path="/ice-hockey" element={<IceHockeyPage />} />
               <Route path="/volleyball" element={<VolleyballPage />} />
               <Route path="/racing" element={<RacingPage />} />
               <Route path="/esports" element={<EsportsPage />} />

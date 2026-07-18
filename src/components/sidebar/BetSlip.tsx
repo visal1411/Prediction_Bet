@@ -31,7 +31,7 @@ export default function BetSlip() {
         >
           <ShoppingBag size={24} />
           {selections.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-[var(--color-primary-bg)]">
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-[var(--color-primary-bg)] leading-none">
               {selections.length}
             </span>
           )}
@@ -52,7 +52,7 @@ export default function BetSlip() {
           </div>
           <div className="flex items-center gap-2">
             {selections.length > 0 && (
-              <span className="bg-[var(--color-accent-blue)] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-[var(--color-accent-blue)] text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full leading-none">
                 {selections.length}
               </span>
             )}

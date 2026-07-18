@@ -15,14 +15,16 @@ export default function TopNav() {
           Sport<span className="text-gray-400">Bet</span>
         </NavLink>
 
-        <nav className="hidden md:flex space-x-6">
+        <nav className="hidden md:flex items-center space-x-6">
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
-              isActive
-                ? 'text-white border-b-2 border-white pb-1 font-medium'
-                : 'text-[var(--color-text-muted)] hover:text-white transition-colors'
+              `pb-1 border-b-2 transition-colors ${
+                isActive
+                  ? 'text-white border-white font-medium'
+                  : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
+              }`
             }
           >
             Home
@@ -30,10 +32,10 @@ export default function TopNav() {
           <NavLink
             to="/live"
             className={({ isActive }) =>
-              `flex items-center gap-1.5 transition-colors ${
+              `flex items-center gap-1.5 pb-1 border-b-2 transition-colors ${
                 isActive
-                  ? 'text-white border-b-2 border-white pb-1 font-medium'
-                  : 'text-[var(--color-text-muted)] hover:text-white'
+                  ? 'text-white border-white font-medium'
+                  : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
               }`
             }
           >
@@ -43,10 +45,10 @@ export default function TopNav() {
           <NavLink
             to="/my-bets"
             className={({ isActive }) =>
-              `transition-colors ${
+              `pb-1 border-b-2 transition-colors ${
                 isActive
-                  ? 'text-white border-b-2 border-white pb-1 font-medium'
-                  : 'text-[var(--color-text-muted)] hover:text-white'
+                  ? 'text-white border-white font-medium'
+                  : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
               }`
             }
           >
@@ -55,10 +57,10 @@ export default function TopNav() {
           <NavLink
             to="/esports"
             className={({ isActive }) =>
-              `transition-colors ${
+              `pb-1 border-b-2 transition-colors ${
                 isActive
-                  ? 'text-white border-b-2 border-white pb-1 font-medium'
-                  : 'text-[var(--color-text-muted)] hover:text-white'
+                  ? 'text-white border-white font-medium'
+                  : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
               }`
             }
           >
