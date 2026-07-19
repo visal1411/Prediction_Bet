@@ -1,0 +1,201 @@
+// Prisma schema for Sport Betting DApp
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// Events
+// ─────────────────────────────────────────
+
+model Event {
+  id             String   @id @default(uuid())
+  sport          String   // Football, Basketball, Tennis ...
+  league         String
+  teamHome       String   @map("team_home")
+  teamAway       String   @map("team_away")
+  scoreHome      String   @default("-") @map("score_home")
+  scoreAway      String   @default("-") @map("score_away")
+  eventDate      DateTime @map("event_date")
+  status         EventStatus @default(UPCOMING)
+  isLive         Boolean  @default(false) @map("is_live")
+  venue          String?
+  externalApiId  String?  @map("external_api_id")
+  marketAddress  String?  @map("market_address") // Deployed smart contract address
+
+  // Relations
+  teamHomeDetail TeamDetail? @relation("HomeTeam")
+  teamAwayDetail TeamDetail? @relation("AwayTeam")
+  markets        BettingMarket[]
+  bets           Bet[]
+  stats          EventStats?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt  @map("updated_at")
+
+  @@map("events")
+}
+
+enum EventStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────
+// Team Details (for match detail page)
+// ─────────────────────────────────────────
+
+model TeamDetail {
+  id        String  @id @default(uuid())
+  eventId   String  @map("event_id")
+  side      TeamSide // HOME or AWAY
+  name      String
+  shortName String  @map("short_name")
+  league    String
+  manager   String
+  color     String  // hex color e.g. #dc2626
+  form      String  // JSON array e.g. ["W","W","D","L","W"]
+
+  // Key player
+  keyPlayerName    String @map("key_player_name")
+  keyPlayerRole    String @map("key_player_role") // CAPTAIN | STAR
+  keyPlayerGoals   Int    @default(0) @map("key_player_goals")
+  keyPlayerAssists Int    @default(0) @map("key_player_assists")
+  keyPlayerXp      Float  @default(0.0) @map("key_player_xp")
+
+  eventHome Event? @relation("HomeTeam", fields: [eventId], references: [id])
+  eventAway Event? @relation("AwayTeam", fields: [eventId], references: [id])
+
+  @@unique([eventId, side])
+  @@map("team_details")
+}
+
+enum TeamSide {
+  HOME
+  AWAY
+}
+
+// ─────────────────────────────────────────
+// Match Statistics
+// ─────────────────────────────────────────
+
+model EventStats {
+  id               String @id @default(uuid())
+  eventId          String @unique @map("event_id")
+  possessionHome   Int    @default(50) @map("possession_home")
+  possessionAway   Int    @default(50) @map("possession_away")
+  shotsOnTargetHome String @default("0") @map("shots_on_target_home")
+  shotsOnTargetAway String @default("0") @map("shots_on_target_away")
+  cornersHome      Int    @default(0) @map("corners_home")
+  cornersAway      Int    @default(0) @map("corners_away")
+  winsHome         Int    @default(0) @map("wins_home")
+  winsDraw         Int    @default(0) @map("wins_draw")
+  winsAway         Int    @default(0) @map("wins_away")
+
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@map("event_stats")
+}
+
+// ─────────────────────────────────────────
+// Betting Markets
+// ─────────────────────────────────────────
+
+model BettingMarket {
+  id      String @id @default(uuid())
+  eventId String @map("event_id")
+  title   String // "Full Time Result", "First Goal Scorer", etc.
+  sortOrder Int  @default(0) @map("sort_order")
+
+  event   Event          @relation(fields: [eventId], references: [id])
+  options MarketOption[]
+
+  @@map("betting_markets")
+}
+
+model MarketOption {
+  id       String @id @default(uuid())
+  marketId String @map("market_id")
+  label    String // "MUN", "DRAW", "ARS"
+  odds     Float
+  outcome  Int    @default(0) // 0=home/option1, 1=away/option2, 2=draw
+
+  market BettingMarket @relation(fields: [marketId], references: [id])
+  bets   Bet[]
+
+  @@map("market_options")
+}
+
+// ─────────────────────────────────────────
+// Bets
+// ─────────────────────────────────────────
+
+model Bet {
+  id             String    @id @default(uuid())
+  eventId        String    @map("event_id")
+  marketOptionId String    @map("market_option_id")
+  walletAddress  String    @map("wallet_address")
+  stake          Float     // Amount in USD (for demo) or ETH
+  odds           Float     // Odds at time of bet
+  potentialPayout Float    @map("potential_payout")
+  txHash         String?   @unique @map("tx_hash") // Blockchain tx hash
+  status         BetStatus @default(ACTIVE)
+  placedAt       DateTime  @default(now()) @map("placed_at")
+  settledAt      DateTime? @map("settled_at")
+
+  event        Event        @relation(fields: [eventId], references: [id])
+  marketOption MarketOption @relation(fields: [marketOptionId], references: [id])
+
+  @@map("bets")
+}
+
+enum BetStatus {
+  ACTIVE
+  WON
+  LOST
+  CLAIMED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────
+// Users
+// ─────────────────────────────────────────
+
+model User {
+  walletAddress String    @id @map("wallet_address")
+  username      String?
+  avatarUrl     String?   @map("avatar_url")
+  totalBets     Int       @default(0) @map("total_bets")
+  totalWon      Int       @default(0) @map("total_won")
+  totalStaked   Float     @default(0) @map("total_staked")
+  totalProfit   Float     @default(0) @map("total_profit")
+  joinedAt      DateTime  @default(now()) @map("joined_at")
+
+  nonces AuthNonce[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────
+// Auth Nonces (for MetaMask wallet auth)
+// ─────────────────────────────────────────
+
+model AuthNonce {
+  id            String   @id @default(uuid())
+  walletAddress String   @map("wallet_address")
+  nonce         String
+  expiresAt     DateTime @map("expires_at")
+  used          Boolean  @default(false)
+
+  user User @relation(fields: [walletAddress], references: [walletAddress])
+
+  @@map("auth_nonces")
+}
