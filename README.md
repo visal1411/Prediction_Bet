@@ -1,32 +1,77 @@
-# React + TypeScript + Vite
+# Sport Betting Prediction Market DApp
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A decentralized prediction market focused on sports betting. Users can place bets via MetaMask, and outcomes are resolved via smart contracts and Oracle data.
 
-Currently, two official plugins are available:
+## Project Structure (Monorepo)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/` & `public/`: React + Vite Frontend
+- `packages/backend/`: Express + Prisma + MySQL API Backend
+- `packages/contracts/`: Hardhat + Solidity Smart Contracts
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ 1. Smart Contracts Setup
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+**Navigate to the contracts folder:**
+```bash
+cd packages/contracts
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+**Run the test suite to verify the contracts:**
+```bash
+npx hardhat test
+```
+
+*(Optional) Start a local Hardhat node:*
+```bash
+npx hardhat node
+```
+
+---
+
+## 🛠️ 2. Backend Setup
+
+**Navigate to the backend folder:**
+```bash
+cd packages/backend
+npm install
+```
+
+**Start the MySQL Database (requires Docker):**
+```bash
+docker-compose up -d
+```
+*(If you don't use Docker, ensure you have a local MySQL instance running and update the `.env` file accordingly).*
+
+**Initialize & Seed the Database:**
+```bash
+# Creates tables
+npx prisma migrate dev --name init
+
+# Populates tables with mock events and bets matching the frontend
+npm run seed
+```
+
+**Start the API server:**
+```bash
+npm run dev
+```
+The API will run at `http://localhost:3001/api`.
+
+---
+
+## 🛠️ 3. Frontend Setup
+
+**Navigate back to the project root:**
+```bash
+cd ../..  # or open a new terminal in the root folder
+npm install
+```
+
+**Start the Vite development server:**
+```bash
+npm run dev
+```
+
+The frontend will run at `http://localhost:5173`. Make sure you have the **MetaMask** extension installed in your browser to interact with the wallet authentication and betting features!
