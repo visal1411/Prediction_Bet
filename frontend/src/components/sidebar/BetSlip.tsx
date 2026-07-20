@@ -137,11 +137,11 @@ export default function BetSlip() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[var(--color-text-muted)] text-xs">Stake</span>
                         <span className="text-[var(--color-accent-green)] text-xs font-semibold">
-                          Win: ${(sel.stake * sel.odds).toFixed(2)}
+                          To Win: {(sel.stake * sel.odds).toFixed(2)} ETH
                         </span>
                       </div>
                       <div className="flex items-center bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-lg overflow-hidden mb-2">
-                        <span className="text-[var(--color-text-muted)] px-2 text-sm">$</span>
+                        <span className="text-[var(--color-text-muted)] px-2 font-bold text-xs">ETH</span>
                         <input
                           type="number"
                           min={1}
@@ -169,20 +169,20 @@ export default function BetSlip() {
 
               {/* Footer summary */}
               <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-primary-bg)] flex-shrink-0 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)] text-sm">Total Stake</span>
-                  <span className="text-white font-bold">${totalStake.toFixed(2)}</span>
+                <div className="flex justify-between items-center text-[var(--color-text-muted)] text-sm mb-2">
+                  <span>Total Stake</span>
+                  <span className="font-medium text-white">{totalStake.toFixed(2)} ETH</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-muted)] text-sm">Potential Payout</span>
-                  <span className="text-[var(--color-accent-green)] font-black text-lg">${potentialPayout.toFixed(2)}</span>
+                <div className="flex justify-between items-center font-black text-lg mb-4">
+                  <span className="text-white">Est. Payout</span>
+                  <span className="text-[var(--color-accent-green)]">{potentialPayout.toFixed(2)} ETH</span>
                 </div>
 
                 <button
                   onClick={handlePlaceBet}
                   className="w-full bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] text-[var(--color-sidebar-bg)] font-black py-3 rounded-xl transition-all duration-200 text-sm tracking-wide shadow-lg shadow-green-500/20 active:scale-95"
                 >
-                  PLACE BET · ${totalStake.toFixed(2)}
+                  PLACE BET · {totalStake.toFixed(2)} ETH
                 </button>
               </div>
             </>

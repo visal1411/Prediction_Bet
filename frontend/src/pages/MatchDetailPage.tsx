@@ -45,7 +45,7 @@ export default function MatchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const detail = getMatchDetail(Number(id));
-  const { addBet, hasBet, isOpen, toggleOpen, updateStake } = useBetSlip();
+  const { addBet, hasBet, updateStake } = useBetSlip();
   const [expandedMarket, setExpandedMarket] = useState<string | null>('Full Time Result');
   const [showBetModal, setShowBetModal] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
@@ -365,12 +365,12 @@ export default function MatchDetailPage() {
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[var(--color-text-muted)] text-sm">Stake Amount</span>
                   <span className="text-[var(--color-accent-green)] font-bold">
-                    To Win: ${(modalStake * selectedPrediction.odds).toFixed(2)}
+                    To Win: {(modalStake * selectedPrediction.odds).toFixed(2)} ETH
                   </span>
                 </div>
                 
                 <div className="flex items-center bg-[var(--color-primary-bg)] border border-[var(--color-border)] rounded-xl overflow-hidden mb-4">
-                  <span className="text-[var(--color-text-muted)] px-4 font-bold">$</span>
+                  <span className="text-[var(--color-text-muted)] px-4 font-bold text-sm">ETH</span>
                   <input
                     type="number"
                     min={1}
@@ -381,7 +381,7 @@ export default function MatchDetailPage() {
                 </div>
                 
                 <div className="grid grid-cols-4 gap-2 mb-6">
-                  {[5, 10, 25, 50].map(amt => (
+                  {[0.1, 0.5, 1, 5].map(amt => (
                     <button
                       key={amt}
                       onClick={() => setModalStake(amt)}
@@ -391,7 +391,7 @@ export default function MatchDetailPage() {
                           : 'bg-[var(--color-primary-bg)] text-[var(--color-text-muted)] hover:text-white hover:bg-[var(--color-card-hover)]'
                       }`}
                     >
-                      ${amt}
+                      {amt} ETH
                     </button>
                   ))}
                 </div>

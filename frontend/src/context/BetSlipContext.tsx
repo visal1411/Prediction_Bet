@@ -23,6 +23,8 @@ interface BetSlipContextValue {
   potentialPayout: number;
   isOpen: boolean;
   toggleOpen: () => void;
+  error: string | null;
+  clearError: () => void;
 }
 
 const BetSlipContext = createContext<BetSlipContextValue | null>(null);
@@ -30,12 +32,15 @@ const BetSlipContext = createContext<BetSlipContextValue | null>(null);
 export function BetSlipProvider({ children }: { children: React.ReactNode }) {
   const [selections, setSelections] = useState<BetSelection[]>([]);
   const [isOpen, setIsOpen] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const addBet = useCallback((bet: Omit<BetSelection, 'stake'>) => {
     setSelections(prev => {
-      // If already selected, remove it (toggle off)
+      // If already selected, show error
       if (prev.find(s => s.id === bet.id)) {
-        return prev.filter(s => s.id !== bet.id);
+        setError(`You have already added "${bet.selection}" to your bet slip.`);
+        setTimeout(() => setError(null), 3000);
+        return prev;
       }
       return [...prev, { ...bet, stake: 10 }];
     });
@@ -61,6 +66,7 @@ export function BetSlipProvider({ children }: { children: React.ReactNode }) {
     <BetSlipContext.Provider value={{
       selections, addBet, removeBet, updateStake, clearAll, hasBet,
       totalStake, totalOdds, potentialPayout, isOpen, toggleOpen: () => setIsOpen(v => !v),
+      error, clearError: () => setError(null),
     }}>
       {children}
     </BetSlipContext.Provider>

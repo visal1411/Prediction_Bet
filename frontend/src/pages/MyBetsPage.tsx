@@ -151,14 +151,14 @@ export default function MyBetsPage() {
                   </div>
                   <div>
                     <div className="text-[var(--color-text-muted)] text-xs mb-1 uppercase tracking-wider font-semibold">Stake</div>
-                    <div className="text-white font-bold">${bet.stake.toFixed(2)}</div>
+                    <div className="text-white font-bold">{bet.stake.toFixed(2)} ETH</div>
                   </div>
                   <div>
                     <div className="text-[var(--color-text-muted)] text-xs mb-1 uppercase tracking-wider font-semibold">
                       {bet.status === 'WON' ? 'Payout' : 'Pot. Payout'}
                     </div>
                     <div className={`font-bold text-lg ${bet.status === 'WON' ? 'text-[var(--color-accent-green)]' : 'text-white'}`}>
-                      ${bet.potentialPayout.toFixed(2)}
+                      {bet.potentialPayout.toFixed(2)} ETH
                     </div>
                   </div>
                 </div>

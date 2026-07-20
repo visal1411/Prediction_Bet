@@ -107,3 +107,79 @@ export const betSlipItems = [
   { id: 1, sport: 'FOOTBALL', team: 'Manchester Utd (1)', market: 'Match Winner', odds: 2.45 },
   { id: 2, sport: 'BASKETBALL', team: 'Lakers (-2.5)', market: 'Point Spread', odds: 1.91 },
 ];
+
+// --- Admin: Market data ---
+
+export interface Market {
+  id: string;
+  eventId: string;
+  sport: string;
+  league: string;
+  teamHome: string;
+  teamAway: string;
+  eventDate: string;
+  deadline: string;
+  contractAddress: string;
+  status: 'open' | 'locked' | 'resolved' | 'settled' | 'paused';
+  totalPool: string;
+  poolHome: string;
+  poolDraw: string;
+  poolAway: string;
+  totalBettors: number;
+  winningOutcome?: number;
+}
+
+export const mockMarkets: Market[] = [
+  {
+    id: '1',
+    eventId: 'EVT-001',
+    sport: 'Football',
+    league: 'Premier League',
+    teamHome: 'Manchester Utd',
+    teamAway: 'Arsenal',
+    eventDate: '2026-07-25T17:30:00Z',
+    deadline: '2026-07-25T17:00:00Z',
+    contractAddress: '0x1234...abcd',
+    status: 'open',
+    totalPool: '12.5',
+    poolHome: '5.2',
+    poolDraw: '3.1',
+    poolAway: '4.2',
+    totalBettors: 34,
+  },
+  {
+    id: '2',
+    eventId: 'EVT-002',
+    sport: 'Football',
+    league: 'La Liga',
+    teamHome: 'Barcelona',
+    teamAway: 'Atletico Madrid',
+    eventDate: '2026-07-26T21:00:00Z',
+    deadline: '2026-07-26T20:30:00Z',
+    contractAddress: '0x5678...efgh',
+    status: 'locked',
+    totalPool: '8.3',
+    poolHome: '4.1',
+    poolDraw: '1.8',
+    poolAway: '2.4',
+    totalBettors: 21,
+  },
+  {
+    id: '3',
+    eventId: 'EVT-003',
+    sport: 'Basketball',
+    league: 'NBA Regular Season',
+    teamHome: 'Lakers',
+    teamAway: 'Warriors',
+    eventDate: '2026-07-20T20:30:00Z',
+    deadline: '2026-07-20T20:00:00Z',
+    contractAddress: '0x9abc...ijkl',
+    status: 'resolved',
+    totalPool: '22.7',
+    poolHome: '12.1',
+    poolDraw: '0.0',
+    poolAway: '10.6',
+    totalBettors: 58,
+    winningOutcome: 0,
+  },
+];

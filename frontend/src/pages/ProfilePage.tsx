@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
+import { NavLink } from 'react-router';
 import { useWallet } from '../context/WalletContext';
-import { User, Wallet, Shield, Activity, Edit2, Check, X } from 'lucide-react';
+import { User, Wallet, Shield, Activity, Edit2, Check, X, Settings } from 'lucide-react';
 
 export default function ProfilePage() {
   const { account, isConnecting, connectWallet } = useWallet();
   const [username, setUsername] = useState('Anon User');
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState('');
+
+  // TODO: Replace this with a check against the contract owner address
+  const isAdmin = true;
+
 
   // Load from local storage
   useEffect(() => {
@@ -54,7 +59,7 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto px-6 py-6 h-full overflow-y-auto">
       {/* Header Banner */}
       <div className="relative w-full h-48 rounded-2xl bg-gradient-to-r from-[var(--color-primary-bg)] via-[var(--color-sidebar-bg)] to-[var(--color-primary-bg)] mb-8 shadow-2xl border border-[var(--color-border)]">
-        
+
         {/* Box Pattern Overlay */}
         <div className="absolute inset-0 z-0 opacity-20 rounded-2xl overflow-hidden pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.2\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
 
@@ -94,9 +99,21 @@ export default function ProfilePage() {
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-2 mt-2 text-[var(--color-text-muted)] bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] px-3 py-1 rounded-md w-fit shadow-inner">
-              <Wallet size={14} className="text-[var(--color-accent-blue)]" />
-              <span className="text-sm font-medium font-mono">{account.slice(0, 6)}...{account.slice(-4)}</span>
+            <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-2 text-[var(--color-text-muted)] bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] px-3 py-1 rounded-md w-fit shadow-inner">
+                <Wallet size={14} className="text-[var(--color-accent-blue)]" />
+                <span className="text-sm font-medium font-mono">{account.slice(0, 6)}...{account.slice(-4)}</span>
+              </div>
+
+              {isAdmin && (
+                <NavLink 
+                  to="/admin" 
+                  className="flex items-center gap-1.5 bg-amber-500 text-[var(--color-sidebar-bg)] px-3 py-1 rounded-md transition-colors text-sm font-bold shadow-sm"
+                >
+                  <Settings size={14} />
+                  Admin Dashboard
+                </NavLink>
+              )}
             </div>
           </div>
         </div>
@@ -120,7 +137,7 @@ export default function ProfilePage() {
               </div>
               <div className="bg-[var(--color-primary-bg)] rounded-xl p-3">
                 <div className="text-[var(--color-text-muted)] text-[10px] uppercase tracking-wider mb-1">Total Winnings</div>
-                <div className="text-2xl font-black text-white">$0.00</div>
+                <div className="text-2xl font-black text-white">0.00 ETH</div>
               </div>
             </div>
           </div>

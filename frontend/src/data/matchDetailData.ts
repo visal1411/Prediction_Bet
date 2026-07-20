@@ -161,7 +161,7 @@ export const matchDetails: Record<number, MatchDetail> = {
     match: {
       id: 3, league: 'NBA Regular Season', sport: 'Basketball', time: 'Live 3Q',
       team1: 'Lakers', team2: 'Warriors',
-      score1: '102', score2: '98', odds: { win1: 1.91, draw: null, win2: 1.91 }, isLive: true,
+      score1: '102', score2: '98', odds: { win1: 1.91, draw: 15.00, win2: 1.91 }, isLive: true,
     },
     date: '20 July 2026',
     time: '20:30 PST',
@@ -189,6 +189,7 @@ export const matchDetails: Record<number, MatchDetail> = {
         title: 'Match Winner',
         options: [
           { label: 'LAL', odds: 1.91 },
+          { label: 'DRAW', odds: 15.00 },
           { label: 'GSW', odds: 1.91 },
         ],
       },

@@ -23,11 +23,11 @@ export default function TopNav() {
   }, []);
 
   const searchResults = searchQuery
-    ? upcomingMatches.filter(m => 
-        m.team1.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.team2.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.league.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 5)
+    ? upcomingMatches.filter(m =>
+      m.team1.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.team2.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.league.toLowerCase().includes(searchQuery.toLowerCase())
+    ).slice(0, 5)
     : [];
 
   const formatAddress = (addr: string) => {
@@ -43,48 +43,45 @@ export default function TopNav() {
       </div>
 
       <nav className="hidden md:flex items-center space-x-8 absolute left-64 pl-8 z-0">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `flex items-center gap-1.5 pb-1 border-b-2 transition-colors ${
-                isActive
-                  ? 'text-white border-white font-medium'
-                  : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
-              }`
-            }
-          >
-            <Home size={16} />
-            Home
-          </NavLink>
-          <NavLink
-            to="/live"
-            className={({ isActive }) =>
-              `flex items-center gap-1.5 pb-1 border-b-2 transition-colors ${
-                isActive
-                  ? 'text-white border-white font-medium'
-                  : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
-              }`
-            }
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            Live
-          </NavLink>
-          <NavLink
-            to="/my-bets"
-            className={({ isActive }) =>
-              `flex items-center gap-1.5 pb-1 border-b-2 transition-colors ${
-                isActive
-                  ? 'text-white border-white font-medium'
-                  : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
-              }`
-            }
-          >
-            <Receipt size={16} />
-            My Bets
-          </NavLink>
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            `flex items-center gap-1.5 pb-1 border-b-2 transition-colors ${isActive
+              ? 'text-white border-white font-medium'
+              : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
+            }`
+          }
+        >
+          <Home size={16} />
+          Home
+        </NavLink>
+        <NavLink
+          to="/live"
+          className={({ isActive }) =>
+            `flex items-center gap-1.5 pb-1 border-b-2 transition-colors ${isActive
+              ? 'text-white border-white font-medium'
+              : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
+            }`
+          }
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          Live
+        </NavLink>
+        <NavLink
+          to="/my-bets"
+          className={({ isActive }) =>
+            `flex items-center gap-1.5 pb-1 border-b-2 transition-colors ${isActive
+              ? 'text-white border-white font-medium'
+              : 'text-[var(--color-text-muted)] border-transparent hover:text-white'
+            }`
+          }
+        >
+          <Receipt size={16} />
+          My Bets
+        </NavLink>
 
-        </nav>
+      </nav>
       <div className="flex items-center space-x-6 flex-1 justify-end z-10">
         <div className="relative hidden lg:block" ref={searchRef}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-30" size={18} />
@@ -111,8 +108,8 @@ export default function TopNav() {
                         className="w-full text-left px-4 py-2 hover:bg-[var(--color-card-hover)] transition-colors flex justify-between items-center"
                       >
                         <div>
-                           <div className="text-white text-sm font-medium">{match.team1} vs {match.team2}</div>
-                           <div className="text-[var(--color-text-muted)] text-xs">{match.league}</div>
+                          <div className="text-white text-sm font-medium">{match.team1} vs {match.team2}</div>
+                          <div className="text-[var(--color-text-muted)] text-xs">{match.league}</div>
                         </div>
                         {match.isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
                       </button>
@@ -135,7 +132,7 @@ export default function TopNav() {
         </NavLink>
 
         {account ? (
-          <button 
+          <button
             onClick={disconnectWallet}
             className="bg-[var(--color-card-bg)] border border-[var(--color-border)] hover:border-[var(--color-text-muted)] text-white px-4 py-2 rounded-md font-medium text-sm transition-colors shadow flex items-center space-x-2"
             title="Click to disconnect"
@@ -144,7 +141,7 @@ export default function TopNav() {
             <span>{formatAddress(account)}</span>
           </button>
         ) : (
-          <button 
+          <button
             onClick={connectWallet}
             disabled={isConnecting}
             className="bg-[var(--color-accent-blue)] hover:bg-blue-600 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-lg flex items-center space-x-2"
