@@ -71,24 +71,34 @@ export default function UpcomingMatches({ sportFilter = 'all' }: UpcomingMatches
                 </div>
               </div>
 
+              <div className="mb-4 text-xs font-semibold text-[var(--color-text-muted)] flex justify-between">
+                <span>Pool Prediction</span>
+                <span className="text-white">{match.ratio.win1}% / {match.ratio.draw ? match.ratio.draw + '% / ' : ''}{match.ratio.win2}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-[var(--color-border)] mb-5 overflow-hidden flex">
+                <div className="h-full bg-[var(--color-accent-blue)]" style={{ width: `${match.ratio.win1}%` }} />
+                {match.ratio.draw && <div className="h-full bg-gray-400" style={{ width: `${match.ratio.draw}%` }} />}
+                <div className="h-full bg-red-500" style={{ width: `${match.ratio.win2}%` }} />
+              </div>
+
               <div className="grid grid-cols-3 gap-2">
-                <button className="bg-[var(--color-card-bg)] hover:bg-[var(--color-card-hover)] border border-[var(--color-border)] group-hover:border-gray-600 rounded-md py-2 flex flex-col items-center justify-center transition-colors">
-                  <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5">{match.isLive ? 'Home (-2.5)' : '1'}</span>
-                  <span className="text-white font-bold text-sm">{match.odds.win1.toFixed(2)}</span>
+                <button className="bg-[var(--color-card-bg)] hover:bg-[#1d4ed830] border border-[var(--color-border)] group-hover:border-[var(--color-accent-blue)] rounded-md py-2 flex flex-col items-center justify-center transition-colors">
+                  <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 group-hover:text-blue-200">Win 1</span>
+                  <span className="text-white font-bold text-sm">{match.ratio.win1 > 0 ? (100 / match.ratio.win1).toFixed(2) : "0.00"}</span>
                 </button>
 
-                {match.odds.draw ? (
-                  <button className="bg-[var(--color-card-bg)] hover:bg-[var(--color-card-hover)] border border-[var(--color-border)] group-hover:border-gray-600 rounded-md py-2 flex flex-col items-center justify-center transition-colors">
-                    <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5">X</span>
-                    <span className="text-white font-bold text-sm">{match.odds.draw.toFixed(2)}</span>
+                {match.ratio.draw !== null ? (
+                  <button className="bg-[var(--color-card-bg)] hover:bg-[#9ca3af30] border border-[var(--color-border)] group-hover:border-gray-400 rounded-md py-2 flex flex-col items-center justify-center transition-colors">
+                    <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 group-hover:text-gray-300">X</span>
+                    <span className="text-white font-bold text-sm">{match.ratio.draw > 0 ? (100 / match.ratio.draw).toFixed(2) : "0.00"}</span>
                   </button>
                 ) : (
                   <div /> // Placeholder if no draw odds (e.g. basketball/tennis)
                 )}
 
-                <button className="bg-[var(--color-card-bg)] hover:bg-[var(--color-card-hover)] border border-[var(--color-border)] group-hover:border-gray-600 rounded-md py-2 flex flex-col items-center justify-center transition-colors">
-                  <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5">{match.isLive ? 'Away (+2.5)' : '2'}</span>
-                  <span className="text-white font-bold text-sm">{match.odds.win2.toFixed(2)}</span>
+                <button className="bg-[var(--color-card-bg)] hover:bg-[#ef444430] border border-[var(--color-border)] group-hover:border-red-500 rounded-md py-2 flex flex-col items-center justify-center transition-colors">
+                  <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 group-hover:text-red-200">Win 2</span>
+                  <span className="text-white font-bold text-sm">{match.ratio.win2 > 0 ? (100 / match.ratio.win2).toFixed(2) : "0.00"}</span>
                 </button>
               </div>
             </div>

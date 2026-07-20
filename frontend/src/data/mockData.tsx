@@ -29,7 +29,7 @@ export interface Match {
   team2: string;
   score1: string;
   score2: string;
-  odds: { win1: number; draw: number | null; win2: number };
+  ratio: { win1: number; draw: number | null; win2: number };
   isLive?: boolean;
 }
 
@@ -43,7 +43,7 @@ export const upcomingMatches: Match[] = [
     team2: 'Arsenal',
     score1: '-',
     score2: '-',
-    odds: { win1: 2.45, draw: 3.20, win2: 2.80 },
+    ratio: { win1: 60, draw: 10, win2: 30 },
   },
   {
     id: 2,
@@ -54,7 +54,7 @@ export const upcomingMatches: Match[] = [
     team2: 'Atletico Madrid',
     score1: '-',
     score2: '-',
-    odds: { win1: 1.95, draw: 3.40, win2: 4.10 },
+    ratio: { win1: 45, draw: 15, win2: 40 },
   },
   {
     id: 3,
@@ -65,7 +65,7 @@ export const upcomingMatches: Match[] = [
     team2: 'Warriors',
     score1: '102',
     score2: '98',
-    odds: { win1: 1.91, draw: null, win2: 1.91 },
+    ratio: { win1: 80, draw: null, win2: 20 },
     isLive: true,
   },
 ];
@@ -73,12 +73,12 @@ export const upcomingMatches: Match[] = [
 // --- Sport-specific matches ---
 
 export const footballMatches: Match[] = [
-  { id: 1, sport: 'Football', league: 'Premier League', time: 'Today, 17:30', team1: 'Manchester Utd', team2: 'Arsenal', score1: '-', score2: '-', odds: { win1: 2.45, draw: 3.20, win2: 2.80 } },
-  { id: 2, sport: 'Football', league: 'La Liga', time: 'Today, 21:00', team1: 'Barcelona', team2: 'Atletico Madrid', score1: '-', score2: '-', odds: { win1: 1.95, draw: 3.40, win2: 4.10 } },
+  { id: 1, sport: 'Football', league: 'Premier League', time: 'Today, 17:30', team1: 'Manchester Utd', team2: 'Arsenal', score1: '-', score2: '-', ratio: { win1: 60, draw: 10, win2: 30 } },
+  { id: 2, sport: 'Football', league: 'La Liga', time: 'Today, 21:00', team1: 'Barcelona', team2: 'Atletico Madrid', score1: '-', score2: '-', ratio: { win1: 45, draw: 15, win2: 40 } },
 ];
 
 export const basketballMatches: Match[] = [
-  { id: 3, sport: 'Basketball', league: 'NBA Regular Season', time: 'Live 3Q', team1: 'Lakers', team2: 'Warriors', score1: '102', score2: '98', odds: { win1: 1.91, draw: null, win2: 1.91 }, isLive: true },
+  { id: 3, sport: 'Basketball', league: 'NBA Regular Season', time: 'Live 3Q', team1: 'Lakers', team2: 'Warriors', score1: '102', score2: '98', ratio: { win1: 80, draw: null, win2: 20 }, isLive: true },
 ];
 
 export const tennisMatches: Match[] = [];
@@ -104,8 +104,8 @@ export const leagueStandings = [
 ];
 
 export const betSlipItems = [
-  { id: 1, sport: 'FOOTBALL', team: 'Manchester Utd (1)', market: 'Match Winner', odds: 2.45 },
-  { id: 2, sport: 'BASKETBALL', team: 'Lakers (-2.5)', market: 'Point Spread', odds: 1.91 },
+  { id: 1, sport: 'FOOTBALL', team: 'Manchester Utd (1)', market: 'Match Winner', odds: 2.0 },
+  { id: 2, sport: 'BASKETBALL', team: 'Lakers (-2.5)', market: 'Point Spread', odds: 2.0 },
 ];
 
 // --- Admin: Market data ---
@@ -127,6 +127,7 @@ export interface Market {
   poolAway: string;
   totalBettors: number;
   winningOutcome?: number;
+  isDemo?: boolean;
 }
 
 export const mockMarkets: Market[] = [
@@ -146,6 +147,7 @@ export const mockMarkets: Market[] = [
     poolDraw: '3.1',
     poolAway: '4.2',
     totalBettors: 34,
+    isDemo: true,
   },
   {
     id: '2',
@@ -163,6 +165,7 @@ export const mockMarkets: Market[] = [
     poolDraw: '1.8',
     poolAway: '2.4',
     totalBettors: 21,
+    isDemo: true,
   },
   {
     id: '3',
@@ -181,5 +184,6 @@ export const mockMarkets: Market[] = [
     poolAway: '10.6',
     totalBettors: 58,
     winningOutcome: 0,
+    isDemo: false,
   },
 ];

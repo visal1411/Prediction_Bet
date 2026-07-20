@@ -49,7 +49,7 @@ export const matchDetails: Record<number, MatchDetail> = {
     match: {
       id: 1, league: 'Premier League', sport: 'Football', time: 'Today, 17:30',
       team1: 'Manchester Utd', team2: 'Arsenal',
-      score1: '-', score2: '-', odds: { win1: 2.45, draw: 3.20, win2: 2.80 },
+      score1: '-', score2: '-', ratio: { win1: 60, draw: 10, win2: 30 },
     },
     date: '20 July 2026',
     time: '20:00 GMT',
@@ -76,9 +76,9 @@ export const matchDetails: Record<number, MatchDetail> = {
       {
         title: 'Full Time Result',
         options: [
-          { label: 'MUN', odds: 2.45 },
-          { label: 'DRAW', odds: 3.40 },
-          { label: 'ARS', odds: 2.80 },
+          { label: 'MUN', odds: 2.0 },
+          { label: 'DRAW', odds: 3.0 },
+          { label: 'ARS', odds: 2.0 },
         ],
       },
       {
@@ -105,7 +105,7 @@ export const matchDetails: Record<number, MatchDetail> = {
     match: {
       id: 2, league: 'La Liga', sport: 'Football', time: 'Today, 21:00',
       team1: 'Barcelona', team2: 'Atletico Madrid',
-      score1: '-', score2: '-', odds: { win1: 1.95, draw: 3.40, win2: 4.10 },
+      score1: '-', score2: '-', ratio: { win1: 45, draw: 15, win2: 40 },
     },
     date: '20 July 2026',
     time: '21:00 GMT',
@@ -132,9 +132,9 @@ export const matchDetails: Record<number, MatchDetail> = {
       {
         title: 'Full Time Result',
         options: [
-          { label: 'BAR', odds: 1.95 },
-          { label: 'DRAW', odds: 3.40 },
-          { label: 'ATM', odds: 4.10 },
+          { label: 'BAR', odds: 2.0 },
+          { label: 'DRAW', odds: 3.5 },
+          { label: 'ATM', odds: 2.0 },
         ],
       },
       {
@@ -161,7 +161,7 @@ export const matchDetails: Record<number, MatchDetail> = {
     match: {
       id: 3, league: 'NBA Regular Season', sport: 'Basketball', time: 'Live 3Q',
       team1: 'Lakers', team2: 'Warriors',
-      score1: '102', score2: '98', odds: { win1: 1.91, draw: 15.00, win2: 1.91 }, isLive: true,
+      score1: '102', score2: '98', ratio: { win1: 80, draw: null, win2: 20 }, isLive: true,
     },
     date: '20 July 2026',
     time: '20:30 PST',
@@ -188,9 +188,9 @@ export const matchDetails: Record<number, MatchDetail> = {
       {
         title: 'Match Winner',
         options: [
-          { label: 'LAL', odds: 1.91 },
+          { label: 'LAL', odds: 2.0 },
           { label: 'DRAW', odds: 15.00 },
-          { label: 'GSW', odds: 1.91 },
+          { label: 'GSW', odds: 2.0 },
         ],
       },
       {

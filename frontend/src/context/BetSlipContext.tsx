@@ -25,6 +25,8 @@ interface BetSlipContextValue {
   toggleOpen: () => void;
   error: string | null;
   clearError: () => void;
+  info: string | null;
+  clearInfo: () => void;
 }
 
 const BetSlipContext = createContext<BetSlipContextValue | null>(null);
@@ -33,15 +35,30 @@ export function BetSlipProvider({ children }: { children: React.ReactNode }) {
   const [selections, setSelections] = useState<BetSelection[]>([]);
   const [isOpen, setIsOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   const addBet = useCallback((bet: Omit<BetSelection, 'stake'>) => {
     setSelections(prev => {
-      // If already selected, show error
-      if (prev.find(s => s.id === bet.id)) {
-        setError(`You have already added "${bet.selection}" to your bet slip.`);
-        setTimeout(() => setError(null), 3000);
-        return prev;
+      const existingMatchIndex = prev.findIndex(s => s.matchId === bet.matchId);
+      
+      if (existingMatchIndex !== -1) {
+        const existingBet = prev[existingMatchIndex];
+        
+        if (existingBet.id === bet.id) {
+          setError(`You have already added "${bet.selection}" to your bet slip.`);
+          setTimeout(() => setError(null), 3000);
+          return prev;
+        }
+        
+        // Swap with the new selection for the same match
+        setInfo(`Swapped outcome to ${bet.selection} (1 outcome per match).`);
+        setTimeout(() => setInfo(null), 3000);
+        
+        const newSelections = [...prev];
+        newSelections[existingMatchIndex] = { ...bet, stake: existingBet.stake }; 
+        return newSelections;
       }
+
       return [...prev, { ...bet, stake: 10 }];
     });
   }, []);
@@ -60,13 +77,14 @@ export function BetSlipProvider({ children }: { children: React.ReactNode }) {
 
   const totalStake = selections.reduce((sum, s) => sum + s.stake, 0);
   const totalOdds = selections.reduce((acc, s) => acc * s.odds, 1);
-  const potentialPayout = selections.reduce((sum, s) => sum + s.stake * s.odds, 0);
+  const potentialPayout = selections.reduce((sum, s) => sum + s.stake * 2, 0);
 
   return (
     <BetSlipContext.Provider value={{
       selections, addBet, removeBet, updateStake, clearAll, hasBet,
       totalStake, totalOdds, potentialPayout, isOpen, toggleOpen: () => setIsOpen(v => !v),
       error, clearError: () => setError(null),
+      info, clearInfo: () => setInfo(null),
     }}>
       {children}
     </BetSlipContext.Provider>

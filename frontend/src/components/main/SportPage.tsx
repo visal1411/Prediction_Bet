@@ -32,7 +32,7 @@ export default function SportPage({ sport, icon, accentColor, heroTitle, heroSub
         sport: sport.toUpperCase(),
         market: 'Match Winner',
         selection: featuredMatch.team1,
-        odds: featuredMatch.odds.win1,
+        odds: featuredMatch.ratio.win1 > 0 ? parseFloat((100 / featuredMatch.ratio.win1).toFixed(2)) : 0,
       });
       if (!isOpen) toggleOpen();
     }

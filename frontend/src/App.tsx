@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router';
 import { BetSlipProvider } from './context/BetSlipContext';
-import { WalletProvider } from './context/WalletContext';
+import { Web3Provider } from './context/Web3Context';
 import AppLayout from './components/layout/AppLayout';
 import HomePage from './pages/HomePage';
 import SportsPage from './pages/SportsPage';
@@ -12,7 +12,7 @@ import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
-    <WalletProvider>
+    <Web3Provider>
       <BetSlipProvider>
         <BrowserRouter>
           <AppLayout>
@@ -29,7 +29,7 @@ function App() {
           </AppLayout>
         </BrowserRouter>
       </BetSlipProvider>
-    </WalletProvider>
+    </Web3Provider>
   );
 }
 

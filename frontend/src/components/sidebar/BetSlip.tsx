@@ -1,5 +1,6 @@
 import { ShoppingBag, X, Trash2, ChevronRight } from 'lucide-react';
 import { useBetSlip } from '../../context/BetSlipContext';
+import { useWallet } from '../../context/Web3Context';
 import { useState } from 'react';
 
 const QUICK_STAKES = [5, 10, 25, 50];
@@ -10,10 +11,17 @@ export default function BetSlip() {
     totalStake, potentialPayout, isOpen, toggleOpen,
   } = useBetSlip();
 
+  const { account, connectWallet } = useWallet();
   const [betPlaced, setBetPlaced] = useState(false);
 
   const handlePlaceBet = () => {
     if (selections.length === 0) return;
+    if (!account) {
+      alert("Please connect your wallet first to place a decentralized bet.");
+      connectWallet();
+      return;
+    }
+    
     setBetPlaced(true);
     setTimeout(() => {
       setBetPlaced(false);
@@ -129,7 +137,7 @@ export default function BetSlip() {
                         <p className="text-white font-semibold text-sm">{sel.selection}</p>
                         <p className="text-[var(--color-text-muted)] text-xs">{sel.market}</p>
                       </div>
-                      <span className="text-[var(--color-accent-blue)] font-black text-lg">{sel.odds.toFixed(2)}</span>
+                      <span className="text-[9px] text-[var(--color-text-muted)] font-black tracking-widest border border-dashed border-gray-600 mt-1 px-1.5 py-0.5 uppercase opacity-60">1:1 MATCH</span>
                     </div>
 
                     {/* Stake input */}
@@ -137,7 +145,7 @@ export default function BetSlip() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[var(--color-text-muted)] text-xs">Stake</span>
                         <span className="text-[var(--color-accent-green)] text-xs font-semibold">
-                          To Win: {(sel.stake * sel.odds).toFixed(2)} ETH
+                          To Win: {(sel.stake * 2).toFixed(2)} ETH
                         </span>
                       </div>
                       <div className="flex items-center bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-lg overflow-hidden mb-2">

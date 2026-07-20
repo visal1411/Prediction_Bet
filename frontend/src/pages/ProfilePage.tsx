@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router';
-import { useWallet } from '../context/WalletContext';
+import { useWallet } from '../context/Web3Context';
 import { User, Wallet, Shield, Activity, Edit2, Check, X, Settings } from 'lucide-react';
 
 export default function ProfilePage() {

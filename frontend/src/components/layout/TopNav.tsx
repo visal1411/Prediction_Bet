@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { Search, Bell, User, Home, Receipt } from 'lucide-react';
-import { useWallet } from '../../context/WalletContext';
+import { useWallet } from '../../context/Web3Context';
 import { upcomingMatches } from '../../data/mockData';
 import logoIcon from '../icons/logo.jpg';
 

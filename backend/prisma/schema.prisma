@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id              String   @id @default(uuid())
+  sport           String
+  league          String?
+  teamHome        String
+  teamAway        String
+  eventDate       DateTime
+  externalApiId   String?          // SportsData.io GameID (null for demo markets)
+  marketAddress   String?          // Deployed PredictionMarket contract address
+  isDemo          Boolean  @default(false)  // Mirrors PredictionMarket.isDemo
+  status          String   @default("upcoming") // upcoming | open | locked | resolved | settled | cancelled
+  result          Int?             // Winning outcome index (0=home, 1=away, 2=draw)
+  totalPool       String   @default("0")    // Total ETH pool in wei (string for BigInt)
+  poolHome        String   @default("0")
+  poolDraw        String   @default("0")
+  poolAway        String   @default("0")
+  totalBettors    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  bets            Bet[]
+
+  @@map("events")
+}
+
+model Bet {
+  id            String   @id @default(uuid())
+  eventId       String
+  walletAddress String
+  outcome       Int              // 0=home, 1=away, 2=draw
+  amountWei     String           // BigInt as string
+  txHash        String   @unique
+  status        String   @default("confirmed") // confirmed | won | lost | claimed
+  createdAt     DateTime @default(now())
+  event         Event    @relation(fields: [eventId], references: [id])
+
+  @@index([walletAddress])
+  @@index([eventId])
+  @@map("bets")
+}
+
+model User {
+  walletAddress String   @id
+  username      String?
+  totalBets     Int      @default(0)
+  totalWon      Int      @default(0)
+  totalEarnings String   @default("0")   // wei as string
+  joinedAt      DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("users")
+}

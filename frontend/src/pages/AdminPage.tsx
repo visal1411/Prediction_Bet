@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useWallet } from '../context/WalletContext';
+import { useWallet } from '../context/Web3Context';
 import {
   Shield, Plus, AlertTriangle, Activity, Eye, Pause, Play,
   Trash2, CheckCircle2, XCircle, Clock, RefreshCw, Settings,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { mockMarkets } from '../data/mockData';
 import type { Market } from '../data/mockData';
+import { getMarketContract } from '../app/contracts';
 
 
 // ── Helper Components ─────────────────────────────────────────────────────────
@@ -81,8 +82,8 @@ function StatCard({ label, value, sub, icon, accent = 'blue' }: {
 // ── Main Admin Page ───────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const { account, connectWallet, isConnecting } = useWallet();
-  const [activeTab, setActiveTab] = useState<'MARKETS' | 'CREATE' | 'EMERGENCY'>('MARKETS');
+  const { account, connectWallet, isConnecting, signer } = useWallet();
+  const [activeTab, setActiveTab] = useState<'MARKETS' | 'DEMO' | 'CREATE' | 'EMERGENCY'>('MARKETS');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedMarket, setExpandedMarket] = useState<string | null>(null);
 
@@ -101,6 +102,29 @@ export default function AdminPage() {
   // Manual resolution state
   const [resolveMarketId, setResolveMarketId] = useState('');
   const [resolveOutcome, setResolveOutcome] = useState<number | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
+
+  const handleForceResolve = async () => {
+    if (!account || !resolveMarketId || resolveOutcome === null) return;
+    try {
+      setIsResolving(true);
+      if (!signer) {
+        await connectWallet();
+        throw new Error("Connecting wallet... please try clicking Resolve again.");
+      }
+      const contract = getMarketContract(resolveMarketId, signer);
+      const tx = await contract.resolve(resolveOutcome);
+      await tx.wait();
+      alert(`Market ${resolveMarketId} resolved successfully to outcome ${resolveOutcome}!`);
+      setResolveMarketId('');
+      setResolveOutcome(null);
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to resolve: " + (err.reason || err.message));
+    } finally {
+      setIsResolving(false);
+    }
+  };
 
   // ── Not connected ─────────────────────────────────────────────────────────
 
@@ -203,6 +227,7 @@ export default function AdminPage() {
       <div className="flex space-x-2 border-b border-[var(--color-border)] mb-8 pb-px">
         {([
           { id: 'MARKETS' as const, label: 'Active Markets', icon: <Eye size={16} /> },
+          { id: 'DEMO' as const, label: 'Demo Markets', icon: <Activity size={16} /> },
           { id: 'CREATE' as const, label: 'Create Market', icon: <Plus size={16} /> },
           { id: 'EMERGENCY' as const, label: 'Emergency Controls', icon: <AlertTriangle size={16} /> },
         ]).map(tab => (
@@ -272,6 +297,9 @@ export default function AdminPage() {
                             <span className="text-xs text-[var(--color-text-muted)]">{market.league}</span>
                             <span className="text-gray-600 text-xs">•</span>
                             <span className="text-xs text-[var(--color-text-muted)] font-mono">{market.eventId}</span>
+                            {market.isDemo && (
+                              <span className="ml-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded">DEMO</span>
+                            )}
                           </div>
                           <h3 className="text-white font-bold text-lg">
                             {market.teamHome} <span className="text-[var(--color-text-muted)] font-normal">vs</span> {market.teamAway}
@@ -383,6 +411,48 @@ export default function AdminPage() {
               })
             )}
           </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TAB: DEMO MARKETS
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'DEMO' && (
+        <div className="space-y-4">
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-5 mb-6">
+            <h3 className="text-purple-400 font-bold mb-1">Live Presentation Mode</h3>
+            <p className="text-[var(--color-text-muted)] text-sm">Use these markets during the class demo. They have the "isDemo" flag enabled, meaning you (the owner) can resolve them manually without waiting for the Chainlink Oracle or real live games.</p>
+          </div>
+          {mockMarkets.filter(m => m.isDemo).map(market => (
+            <div key={market.id} className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-xl p-5">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded mr-2">DEMO MARKET</span>
+                  <span className="text-gray-400 font-mono text-sm">{market.eventId}</span>
+                  <h3 className="text-white font-bold text-xl mt-1">{market.teamHome} vs {market.teamAway}</h3>
+                </div>
+                <div className="text-right">
+                  <StatusBadge status={market.status} />
+                  <div className="text-white font-bold mt-2">{market.totalPool} ETH Pool</div>
+                </div>
+              </div>
+              
+              <div className="bg-[var(--color-primary-bg)] rounded-xl p-4 border border-[var(--color-border)]">
+                <p className="text-sm text-gray-400 mb-3 text-center uppercase tracking-wider font-bold">Manual Resolution Controls</p>
+                <div className="flex gap-3">
+                  <button onClick={() => alert(`Resolved ${market.eventId} as ${market.teamHome} Win`)} className="flex-1 py-3 px-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-bold transition-all text-sm">
+                    🏆 Declare: {market.teamHome} Win
+                  </button>
+                  <button onClick={() => alert(`Resolved ${market.eventId} as Draw`)} className="flex-1 py-3 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg font-bold transition-all text-sm">
+                    🤝 Declare: Draw
+                  </button>
+                  <button onClick={() => alert(`Resolved ${market.eventId} as ${market.teamAway} Win`)} className="flex-1 py-3 px-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-bold transition-all text-sm">
+                    🏆 Declare: {market.teamAway} Win
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -652,11 +722,12 @@ export default function AdminPage() {
                 </div>
 
                 <button
-                  disabled={!resolveMarketId || resolveOutcome === null}
+                  onClick={handleForceResolve}
+                  disabled={!resolveMarketId || resolveOutcome === null || isResolving}
                   className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-[var(--color-card-bg)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed text-[var(--color-sidebar-bg)] font-bold py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 mt-2"
                 >
-                  <RefreshCw size={16} />
-                  Force Resolve Market
+                  <RefreshCw size={16} className={isResolving ? 'animate-spin' : ''} />
+                  {isResolving ? 'Resolving on Blockchain...' : 'Force Resolve Market'}
                 </button>
               </div>
             </div>

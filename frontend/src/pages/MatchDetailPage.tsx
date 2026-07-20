@@ -143,6 +143,20 @@ export default function MatchDetailPage() {
             </div>
           </div>
 
+          {/* Color Comparison Bar (Pool Distribution) */}
+          <div className="mt-8 max-w-lg mx-auto">
+            <div className="flex justify-between text-xs font-bold text-[var(--color-text-muted)] mb-2 uppercase tracking-widest">
+              <span>{team1.shortName} ({match.ratio.win1}%)</span>
+              {match.ratio.draw ? <span>DRAW ({match.ratio.draw}%)</span> : null}
+              <span>{team2.shortName} ({match.ratio.win2}%)</span>
+            </div>
+            <div className="flex h-2.5 rounded-full overflow-hidden bg-[var(--color-border)] shadow-inner">
+              <div className="bg-[var(--color-accent-blue)] transition-all duration-700" style={{ width: `${match.ratio.win1}%` }} />
+              {match.ratio.draw ? <div className="bg-gray-400 transition-all duration-700" style={{ width: `${match.ratio.draw}%` }} /> : null}
+              <div className="bg-red-500 transition-all duration-700" style={{ width: `${match.ratio.win2}%` }} />
+            </div>
+          </div>
+
           {/* Match meta */}
           <div className="flex items-center justify-center gap-6 mt-6 pt-6 border-t border-[var(--color-border)]">
             <div className="flex items-center gap-2 text-[var(--color-text-muted)] text-sm">
@@ -307,8 +321,8 @@ export default function MatchDetailPage() {
                                 : 'bg-[var(--color-primary-bg)] border-[var(--color-border)] hover:border-gray-500 text-[var(--color-text-muted)] hover:text-white'
                             }`}
                           >
-                            <span className="text-[10px] uppercase tracking-wider mb-1 font-medium">{opt.label}</span>
-                            <span className="font-black text-base text-white">{opt.odds.toFixed(2)}</span>
+                            <span className="text-xs font-bold uppercase tracking-wider mb-1">{opt.label}</span>
+                            <span className="text-[10px] text-[var(--color-text-muted)] font-bold opacity-70 group-hover:text-white transition-colors">{opt.odds.toFixed(2)}x</span>
                           </button>
                         );
                       })}
@@ -335,13 +349,13 @@ export default function MatchDetailPage() {
             <h3 className="text-xl font-bold text-white mb-2">Quick Bet</h3>
             <p className="text-[var(--color-text-muted)] text-sm mb-6">Select your prediction for Match Winner.</p>
             
-            <div className={`grid gap-3 ${match.odds.draw !== null ? 'grid-cols-3' : 'grid-cols-2'} ${selectedPrediction ? 'mb-6' : ''}`}>
+            <div className={`grid gap-3 ${match.ratio.draw !== null ? 'grid-cols-3' : 'grid-cols-2'} ${selectedPrediction ? 'mb-6' : ''}`}>
               {[
-                { label: team1.shortName + ' Win', optLabel: match.team1, odds: match.odds.win1, idSuffix: 'win1' },
-                { label: 'Draw', optLabel: 'Draw', odds: match.odds.draw, idSuffix: 'draw' },
-                { label: team2.shortName + ' Win', optLabel: match.team2, odds: match.odds.win2, idSuffix: 'win2' },
+                { label: team1.shortName + ' Win', optLabel: match.team1, idSuffix: 'win1' },
+                match.ratio.draw !== null ? { label: 'Draw', optLabel: 'Draw', idSuffix: 'draw' } : null,
+                { label: team2.shortName + ' Win', optLabel: match.team2, idSuffix: 'win2' },
               ].map(opt => {
-                if (opt.odds === null || opt.odds === undefined) return null;
+                if (!opt) return null;
                 const isSelected = selectedPrediction?.idSuffix === opt.idSuffix;
                 return (
                   <button
@@ -353,8 +367,7 @@ export default function MatchDetailPage() {
                         : 'bg-[var(--color-primary-bg)] border-[var(--color-border)] hover:border-gray-500 text-[var(--color-text-muted)] hover:text-white'
                     }`}
                   >
-                    <span className="text-xs uppercase tracking-wider mb-1 font-medium">{opt.label}</span>
-                    <span className="font-black text-lg text-white">{opt.odds.toFixed(2)}</span>
+                    <span className="text-xs uppercase tracking-wider font-bold">{opt.label}</span>
                   </button>
                 );
               })}
@@ -365,7 +378,10 @@ export default function MatchDetailPage() {
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[var(--color-text-muted)] text-sm">Stake Amount</span>
                   <span className="text-[var(--color-accent-green)] font-bold">
-                    To Win: {(modalStake * selectedPrediction.odds).toFixed(2)} ETH
+                    To Win: {(
+                      modalStake *
+                      (100 / match.ratio[selectedPrediction.idSuffix as 'win1'|'draw'|'win2'])
+                    ).toFixed(2)} ETH
                   </span>
                 </div>
                 
@@ -399,6 +415,10 @@ export default function MatchDetailPage() {
                 <button
                   onClick={() => {
                     const betId = `match-${detail.id}-${selectedPrediction.idSuffix}`;
+                    const customOdds = match.ratio[selectedPrediction.idSuffix as 'win1'|'draw'|'win2'] > 0
+                      ? parseFloat((100 / match.ratio[selectedPrediction.idSuffix as 'win1'|'draw'|'win2']).toFixed(2))
+                      : 0;
+
                     addBet({
                       id: betId,
                       matchId: detail.id,
@@ -406,7 +426,7 @@ export default function MatchDetailPage() {
                       sport: match.sport ? match.sport.toUpperCase() : 'FOOTBALL',
                       market: 'Match Winner',
                       selection: selectedPrediction.optLabel,
-                      odds: selectedPrediction.odds
+                      odds: customOdds
                     });
                     updateStake(betId, modalStake);
                     closeBetModal();
