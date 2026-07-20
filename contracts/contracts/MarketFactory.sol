@@ -21,23 +21,14 @@ contract MarketFactory is Ownable {
     // List of all market addresses
     address[] private _allMarkets;
 
-    // Which markets are demo markets
-    mapping(address => bool) public isDemoMarket;
-
-    // Oracle client address (used for real markets)
-    address public oracleClient;
-
     // ─── Events ───────────────────────────────────────────────────────────────
 
     event MarketCreated(
         address indexed marketAddress,
         bytes32 indexed eventId,
         string[] outcomes,
-        uint256 deadline,
-        bool    isDemo
+        uint256 deadline
     );
-
-    event OracleClientUpdated(address indexed newOracleClient);
 
     // ─── Constructor ──────────────────────────────────────────────────────────
 
@@ -46,7 +37,7 @@ contract MarketFactory is Ownable {
     // ─── Factory functions ────────────────────────────────────────────────────
 
     /**
-     * @notice Create a real market — outcome resolved by Chainlink Oracle.
+     * @notice Create a market — outcome resolved by the owner.
      * @param _eventId   Unique bytes32 identifier (e.g. keccak256("EVT-001"))
      * @param _outcomes  Array of outcome labels ["Home Win", "Away Win", "Draw"]
      * @param _deadline  Unix timestamp — betting closes at this time
@@ -56,40 +47,6 @@ contract MarketFactory is Ownable {
         string[] calldata _outcomes,
         uint256        _deadline
     ) external onlyOwner returns (address) {
-        return _deployMarket(_eventId, _outcomes, _deadline, false);
-    }
-
-    /**
-     * @notice Create a demo market — outcome resolved by owner wallet directly.
-     *
-     * HOW TO USE DURING DEMO:
-     *   1. Call this once (via deploy script or Admin UI) to create the market.
-     *   2. Audience / students place bets via the frontend.
-     *   3. When ready to reveal the "winner", the admin connects their owner
-     *      wallet and clicks the "Declare Winner" button in the Admin page.
-     *   4. The Admin UI calls market.resolve(outcomeIndex) — no Chainlink needed.
-     *   5. Winners click "Claim Winnings" and receive ETH instantly.
-     *
-     * @param _eventId   Any bytes32, e.g. keccak256("DEMO_MATCH_001")
-     * @param _outcomes  Fictional outcome labels e.g. ["Crypto Bulls Win", "..."]
-     * @param _deadline  Should be far enough in the future for the demo session
-     */
-    function createDemoMarket(
-        bytes32        _eventId,
-        string[] calldata _outcomes,
-        uint256        _deadline
-    ) external onlyOwner returns (address) {
-        return _deployMarket(_eventId, _outcomes, _deadline, true);
-    }
-
-    // ─── Internal deploy ──────────────────────────────────────────────────────
-
-    function _deployMarket(
-        bytes32        _eventId,
-        string[] calldata _outcomes,
-        uint256        _deadline,
-        bool           _isDemo
-    ) internal returns (address) {
         require(_markets[_eventId] == address(0), "Market already exists");
         require(_outcomes.length >= 2, "Need >= 2 outcomes");
         require(_deadline > block.timestamp, "Deadline must be future");
@@ -104,27 +61,19 @@ contract MarketFactory is Ownable {
             owner(),        // owner of the deployed market = factory owner
             _eventId,
             _outcomesMemory,
-            _deadline,
-            oracleClient,   // oracle address (ignored for demo markets)
-            _isDemo
+            _deadline
         );
 
         address marketAddress = address(market);
 
         _markets[_eventId]         = marketAddress;
         _allMarkets.push(marketAddress);
-        isDemoMarket[marketAddress] = _isDemo;
 
-        emit MarketCreated(marketAddress, _eventId, _outcomesMemory, _deadline, _isDemo);
+        emit MarketCreated(marketAddress, _eventId, _outcomesMemory, _deadline);
         return marketAddress;
     }
 
-    // ─── Configuration ────────────────────────────────────────────────────────
-
-    function setOracleClient(address _oracleClient) external onlyOwner {
-        oracleClient = _oracleClient;
-        emit OracleClientUpdated(_oracleClient);
-    }
+    // Removed oracle configuration
 
     // ─── Views ────────────────────────────────────────────────────────────────
 
@@ -136,35 +85,7 @@ contract MarketFactory is Ownable {
         return _allMarkets;
     }
 
-    function getDemoMarkets() external view returns (address[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 0; i < _allMarkets.length; i++) {
-            if (isDemoMarket[_allMarkets[i]]) count++;
-        }
-        address[] memory demos = new address[](count);
-        uint256 idx = 0;
-        for (uint256 i = 0; i < _allMarkets.length; i++) {
-            if (isDemoMarket[_allMarkets[i]]) {
-                demos[idx++] = _allMarkets[i];
-            }
-        }
-        return demos;
-    }
-
-    function getRealMarkets() external view returns (address[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 0; i < _allMarkets.length; i++) {
-            if (!isDemoMarket[_allMarkets[i]]) count++;
-        }
-        address[] memory real = new address[](count);
-        uint256 idx = 0;
-        for (uint256 i = 0; i < _allMarkets.length; i++) {
-            if (!isDemoMarket[_allMarkets[i]]) {
-                real[idx++] = _allMarkets[i];
-            }
-        }
-        return real;
-    }
+    // Removed getDemoMarkets and getRealMarkets
 
     function getMarketsCount() external view returns (uint256) {
         return _allMarkets.length;

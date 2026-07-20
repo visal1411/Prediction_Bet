@@ -14,12 +14,12 @@ async function main() {
     await factory.waitForDeployment();
     console.log(`✅ MarketFactory deployed at: ${await factory.getAddress()}`);
 
-    // 3. Admin creates a Demo Market
+    // 3. Admin creates a Market
     const eventId = ethers.id("LAKERS_VS_WARRIORS");
     const outcomes = ["Lakers Win", "Warriors Win"];
     const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
     
-    const createTx = await factory.createDemoMarket(eventId, outcomes, deadline);
+    const createTx = await factory.createMarket(eventId, outcomes, deadline);
     await createTx.wait();
     
     const allMarkets = await factory.getAllMarkets();
@@ -45,7 +45,7 @@ async function main() {
     console.log(`-> LoserWallet placed 1 ETH bet on "Warriors" (Outcome 1)`);
 
     // 7. ADMIN RESOLVES THE MARKET
-    console.log("\n⚖️ Admin resolving the market (Bypassing Chainlink since isDemo = true)");
+    console.log("\n⚖️ Admin resolving the market (Manually)");
     // Admin locks the market 
     await (market.connect(admin) as any).lockMarket();
     

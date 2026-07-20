@@ -24,8 +24,6 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
     // ─── State variables ─────────────────────────────────────────────────────
 
     bytes32 public immutable eventId;
-    bool    public immutable isDemo;
-    address public immutable oracle;          // Address of OracleClient (ignored if isDemo)
 
     string[] public outcomes;                 // e.g. ["Home Win", "Away Win", "Draw"]
     uint256  public deadline;                 // Unix timestamp — no new bets accepted after this
@@ -62,30 +60,12 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
     error InvalidOutcome();
     error ZeroAmount();
     error AlreadyClaimed();
-    error NotResolver();
     error NoWinnings();
     error AlreadyResolved();
 
     // ─── Modifiers ────────────────────────────────────────────────────────────
 
-    /**
-     * @dev onlyResolver:
-     *   - Real markets: only the oracle contract can call resolve().
-     *   - Demo markets: only the contract owner can call resolve().
-     *
-     * During a demo, the teacher/presenter connects MetaMask as the owner
-     * wallet and clicks the "Declare Winner" button in the Admin UI,
-     * which calls resolve(outcomeIndex) directly — no Chainlink needed.
-     */
-    modifier onlyResolver() {
-        if (isDemo) {
-            if (msg.sender != owner()) revert NotResolver();
-        } else {
-            if (msg.sender != oracle) revert NotResolver();
-        }
-        _;
-    }
-
+    // removed onlyResolver logic
     modifier onlyOpen() {
         if (state != State.Open) revert NotOpen();
         if (block.timestamp >= deadline) revert DeadlinePassed();
@@ -108,9 +88,7 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         address _owner,
         bytes32 _eventId,
         string[] memory _outcomes,
-        uint256 _deadline,
-        address _oracle,
-        bool    _isDemo
+        uint256 _deadline
     ) Ownable(_owner) {
         require(_outcomes.length >= 2, "Need at least 2 outcomes");
         require(_deadline > block.timestamp, "Deadline must be in future");
@@ -118,8 +96,6 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         eventId  = _eventId;
         outcomes = _outcomes;
         deadline = _deadline;
-        oracle   = _oracle;
-        isDemo   = _isDemo;
         state    = State.Open;
     }
 
@@ -164,13 +140,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Lock the market — no more bets accepted.
-     * @dev Called manually (demo) or by OracleClient before requesting result.
      */
-    function lockMarket() external {
-        require(
-            msg.sender == owner() || msg.sender == oracle,
-            "Only owner or oracle"
-        );
+    function lockMarket() external onlyOwner {
         require(state == State.Open, "Not open");
         state = State.Locked;
         emit MarketLocked();
@@ -179,13 +150,10 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Resolve the market with the winning outcome.
      * @param _winningOutcome Index of the winning outcome.
-     *
-     * For demo markets: owner calls this via Admin UI button.
-     * For real markets: OracleClient calls this after Chainlink Functions returns the result.
      */
     function resolve(uint8 _winningOutcome)
         external
-        onlyResolver
+        onlyOwner
         whenNotPaused
     {
         if (state == State.Resolved) revert AlreadyResolved();
@@ -259,9 +227,8 @@ contract PredictionMarket is Ownable, ReentrancyGuard, Pausable {
         uint256 _deadline,
         State   _state,
         uint256 _totalPool,
-        bool    _isDemo,
         uint8   _winningOutcome
     ) {
-        return (eventId, outcomes, deadline, state, totalPool, isDemo, winningOutcome);
+        return (eventId, outcomes, deadline, state, totalPool, winningOutcome);
     }
 }

@@ -83,7 +83,7 @@ function StatCard({ label, value, sub, icon, accent = 'blue' }: {
 
 export default function AdminPage() {
   const { account, connectWallet, isConnecting, signer } = useWallet();
-  const [activeTab, setActiveTab] = useState<'MARKETS' | 'DEMO' | 'CREATE' | 'EMERGENCY'>('MARKETS');
+  const [activeTab, setActiveTab] = useState<'MARKETS' | 'CREATE' | 'EMERGENCY'>('MARKETS');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedMarket, setExpandedMarket] = useState<string | null>(null);
 
@@ -227,7 +227,6 @@ export default function AdminPage() {
       <div className="flex space-x-2 border-b border-[var(--color-border)] mb-8 pb-px">
         {([
           { id: 'MARKETS' as const, label: 'Active Markets', icon: <Eye size={16} /> },
-          { id: 'DEMO' as const, label: 'Demo Markets', icon: <Activity size={16} /> },
           { id: 'CREATE' as const, label: 'Create Market', icon: <Plus size={16} /> },
           { id: 'EMERGENCY' as const, label: 'Emergency Controls', icon: <AlertTriangle size={16} /> },
         ]).map(tab => (
@@ -297,9 +296,6 @@ export default function AdminPage() {
                             <span className="text-xs text-[var(--color-text-muted)]">{market.league}</span>
                             <span className="text-gray-600 text-xs">•</span>
                             <span className="text-xs text-[var(--color-text-muted)] font-mono">{market.eventId}</span>
-                            {market.isDemo && (
-                              <span className="ml-2 bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded">DEMO</span>
-                            )}
                           </div>
                           <h3 className="text-white font-bold text-lg">
                             {market.teamHome} <span className="text-[var(--color-text-muted)] font-normal">vs</span> {market.teamAway}
@@ -415,48 +411,6 @@ export default function AdminPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          TAB: DEMO MARKETS
-          ═══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'DEMO' && (
-        <div className="space-y-4">
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-5 mb-6">
-            <h3 className="text-purple-400 font-bold mb-1">Live Presentation Mode</h3>
-            <p className="text-[var(--color-text-muted)] text-sm">Use these markets during the class demo. They have the "isDemo" flag enabled, meaning you (the owner) can resolve them manually without waiting for the Chainlink Oracle or real live games.</p>
-          </div>
-          {mockMarkets.filter(m => m.isDemo).map(market => (
-            <div key={market.id} className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-xl p-5">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded mr-2">DEMO MARKET</span>
-                  <span className="text-gray-400 font-mono text-sm">{market.eventId}</span>
-                  <h3 className="text-white font-bold text-xl mt-1">{market.teamHome} vs {market.teamAway}</h3>
-                </div>
-                <div className="text-right">
-                  <StatusBadge status={market.status} />
-                  <div className="text-white font-bold mt-2">{market.totalPool} ETH Pool</div>
-                </div>
-              </div>
-              
-              <div className="bg-[var(--color-primary-bg)] rounded-xl p-4 border border-[var(--color-border)]">
-                <p className="text-sm text-gray-400 mb-3 text-center uppercase tracking-wider font-bold">Manual Resolution Controls</p>
-                <div className="flex gap-3">
-                  <button onClick={() => alert(`Resolved ${market.eventId} as ${market.teamHome} Win`)} className="flex-1 py-3 px-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-bold transition-all text-sm">
-                    🏆 Declare: {market.teamHome} Win
-                  </button>
-                  <button onClick={() => alert(`Resolved ${market.eventId} as Draw`)} className="flex-1 py-3 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg font-bold transition-all text-sm">
-                    🤝 Declare: Draw
-                  </button>
-                  <button onClick={() => alert(`Resolved ${market.eventId} as ${market.teamAway} Win`)} className="flex-1 py-3 px-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-bold transition-all text-sm">
-                    🏆 Declare: {market.teamAway} Win
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
           TAB: CREATE MARKET
           ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'CREATE' && (
@@ -560,24 +514,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* SportsData.io Event ID */}
-              <div>
-                <label className="block text-[var(--color-text-muted)] text-xs uppercase tracking-wider font-semibold mb-2">
-                  SportsData.io Game ID
-                  <span className="text-[var(--color-text-muted)] font-normal normal-case tracking-normal ml-2">(for oracle resolution)</span>
-                </label>
-                <input
-                  type="text"
-                  value={createForm.externalApiId}
-                  onChange={(e) => setCreateForm({ ...createForm, externalApiId: e.target.value })}
-                  placeholder="e.g. 12345"
-                  className="w-full bg-[var(--color-primary-bg)] border border-[var(--color-border)] rounded-xl py-3 px-4 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-[var(--color-accent-blue)] transition-colors font-mono"
-                />
-                <p className="text-[var(--color-text-muted)] text-xs mt-2">
-                  This ID links the market to the SportsData.io API so the Chainlink Oracle can fetch the result automatically.
-                </p>
-              </div>
-
               {/* Deadline offset */}
               <div>
                 <label className="block text-[var(--color-text-muted)] text-xs uppercase tracking-wider font-semibold mb-2">
@@ -678,12 +614,11 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <h3 className="text-white font-bold">Manual Resolution</h3>
-                  <p className="text-[var(--color-text-muted)] text-xs">Oracle fallback</p>
+                  <p className="text-[var(--color-text-muted)] text-xs">Contract Admin Option</p>
                 </div>
               </div>
               <p className="text-[var(--color-text-muted)] text-sm mb-4 leading-relaxed">
-                If the Chainlink Oracle fails to resolve a market automatically, 
-                you can manually set the winning outcome as the contract owner.
+                As the admin, resolve the market manually to distribute winnings to the correct outcome pool.
               </p>
 
               <div className="space-y-3">
@@ -761,37 +696,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Oracle Status */}
-            <div className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-2xl p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
-                  <Activity size={18} className="text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="text-white font-bold">Oracle Status</h3>
-                  <p className="text-[var(--color-text-muted)] text-xs">Chainlink Functions health</p>
-                </div>
-              </div>
 
-              <div className="space-y-3">
-                <div className="bg-[var(--color-primary-bg)] rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-[var(--color-text-muted)] text-xs">Subscription ID</span>
-                  <span className="text-white text-xs font-mono font-bold">Not configured</span>
-                </div>
-                <div className="bg-[var(--color-primary-bg)] rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-[var(--color-text-muted)] text-xs">LINK Balance</span>
-                  <span className="text-white text-xs font-bold">—</span>
-                </div>
-                <div className="bg-[var(--color-primary-bg)] rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-[var(--color-text-muted)] text-xs">Automation Status</span>
-                  <span className="text-amber-400 text-xs font-bold">Pending Setup</span>
-                </div>
-                <div className="bg-[var(--color-primary-bg)] rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-[var(--color-text-muted)] text-xs">SportsData.io API</span>
-                  <span className="text-amber-400 text-xs font-bold">Sandbox (Dev)</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}

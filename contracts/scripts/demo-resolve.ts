@@ -47,9 +47,8 @@ async function main() {
   const market = await ethers.getContractAt("PredictionMarket", marketAddress);
   const info   = await market.getMarketInfo();
 
-  console.log(`\n🎬 Resolving Demo Market ${marketIndex}`);
+  console.log(`\n🎬 Resolving Market ${marketIndex}`);
   console.log(`   Address:     ${marketAddress}`);
-  console.log(`   isDemo:      ${info._isDemo}`);
   console.log(`   State:       ${["Open","Locked","Resolved","Settled"][Number(info._state)]}`);
   console.log(`   Total Pool:  ${ethers.formatEther(info._totalPool)} ETH`);
   console.log(`   Winner:      ${OUTCOME_LABELS[outcomeIndex]} (outcome ${outcomeIndex})\n`);
@@ -62,7 +61,7 @@ async function main() {
     console.log("   ✅ Market locked — no more bets accepted");
   }
 
-  // Step 2: Resolve (owner bypasses oracle because isDemo=true)
+  // Step 2: Resolve (owner handles manually)
   console.log(`Step 2: Resolving with outcome ${outcomeIndex} (${OUTCOME_LABELS[outcomeIndex]})...`);
   const resolveTx = await market.resolve(outcomeIndex);
   await resolveTx.wait();

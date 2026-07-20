@@ -1,14 +1,13 @@
 /**
- * demo-setup.ts
+ * seed-markets.ts
  *
- * Seeds two fictional demo markets for class demonstrations.
+ * Seeds fictional markets for demonstrations.
  * Run AFTER deploy.ts.
  *
  * Usage:
- *   npx hardhat run scripts/demo-setup.ts --network localhost
+ *   npx hardhat run scripts/seed-markets.ts --network localhost
  *
- * These markets use isDemo=true so the owner (you) can resolve them
- * manually from the Admin UI during the presentation — no Chainlink needed.
+ * These markets are resolved manually from the Admin UI.
  */
 
 import { ethers } from "hardhat";
@@ -71,7 +70,7 @@ async function main() {
     console.log(`\n📋 Creating demo market: ${match.teamHome} vs ${match.teamAway}`);
     console.log(`   Betting closes in ${match.deadlineMinutesFromNow} minutes`);
 
-    const tx = await factory.createDemoMarket(eventId, match.outcomes, deadline);
+    const tx = await factory.createMarket(eventId, match.outcomes, deadline);
     const receipt = await tx.wait();
 
     // Extract market address from MarketCreated event
@@ -85,7 +84,7 @@ async function main() {
     results[match.key] = marketAddress;
 
     console.log(`   ✅ Market deployed at: ${marketAddress}`);
-    console.log(`   🏷️  isDemo = true → resolve with Admin UI button`);
+    console.log(`   🏷️  market resolved manually by Admin`);
   }
 
   // Save result to file so demo-resolve.ts and .env can pick it up
@@ -97,7 +96,7 @@ async function main() {
   console.log("\nAdd these to your .env:");
   for (const [key, addr] of Object.entries(results)) {
     const idx = DEMO_MATCHES.findIndex(m => m.key === key) + 1;
-    console.log(`DEMO_MARKET_${idx}_ADDRESS=${addr}`);
+    console.log(`MARKET_${idx}_ADDRESS=${addr}`);
   }
   console.log("────────────────────────────────────────────────────────");
   console.log("\n🎬 Demo markets ready! Now:");

@@ -121,13 +121,13 @@ export default function MyBetsPage() {
     try {
       setLoading(true);
       const factory = getFactoryContract(FACTORY_ADDRESS, provider);
-      const demoMarketsAddress: string[] = await factory.getDemoMarkets();
+      const allMarketsAddress: string[] = await factory.getAllMarkets();
       
       const loadedBets: LiveBet[] = [];
-      for (const address of demoMarketsAddress) {
+      for (const address of allMarketsAddress) {
         const contract = getMarketContract(address, provider);
         const info = await contract.getMarketInfo(); 
-        // 0=eventId, 1=outcomes, 2=deadline, 3=state, 4=totalPool, 5=isDemo, 6=winningOutcome
+        // 0=eventId, 1=outcomes, 2=deadline, 3=state, 4=totalPool, 5=winningOutcome
 
         let userStake = 0n;
         let userOutcome = -1;
@@ -146,7 +146,7 @@ export default function MyBetsPage() {
           let status: 'ACTIVE' | 'WON' | 'LOST' = 'ACTIVE';
           const stateNum = Number(info[3]);
           if (stateNum === 2 || stateNum === 3) { // Resolved or Settled
-            if (Number(info[6]) === userOutcome) {
+            if (Number(info[5]) === userOutcome) {
               status = 'WON';
             } else {
               status = 'LOST';
