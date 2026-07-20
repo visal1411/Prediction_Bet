@@ -1,6 +1,8 @@
-import { ShoppingBag, X, Trash2, ChevronRight } from 'lucide-react';
+import { ShoppingBag, X, Trash2, ChevronRight, Loader2 } from 'lucide-react';
 import { useBetSlip } from '../../context/BetSlipContext';
 import { useState } from 'react';
+import { ethers } from 'ethers';
+import PredictionMarketArtifact from '../../abi/PredictionMarket.json';
 
 const QUICK_STAKES = [5, 10, 25, 50];
 
@@ -11,14 +13,56 @@ export default function BetSlip() {
   } = useBetSlip();
 
   const [betPlaced, setBetPlaced] = useState(false);
+  const [isPlacing, setIsPlacing] = useState(false);
 
-  const handlePlaceBet = () => {
+  const handlePlaceBet = async () => {
     if (selections.length === 0) return;
-    setBetPlaced(true);
-    setTimeout(() => {
-      setBetPlaced(false);
-      clearAll();
-    }, 2500);
+    
+    if (typeof window.ethereum === 'undefined') {
+      alert('Please install MetaMask to place bets on the blockchain.');
+      return;
+    }
+
+    try {
+      setIsPlacing(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      
+      // Request connection if not already connected
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+
+      // Deployed contract address from our local script
+      const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+      const marketContract = new ethers.Contract(contractAddress, PredictionMarketArtifact.abi, signer);
+
+      // Convert totalStake to wei
+      const stakeInWei = ethers.parseEther(totalStake.toString());
+      
+      // Basic heuristic to pick outcome for the mock logic
+      // In a real app, 'outcome' index would be stored in BetSlipContext
+      let outcome = 0; // Home win
+      const selectionText = selections[0].selection.toLowerCase();
+      if (selectionText.includes('draw')) outcome = 2; // Draw
+      else if (selectionText.includes('arsenal') || selectionText.includes('warriors')) outcome = 1; // Away win
+
+      console.log(`Placing bet on outcome ${outcome} with ${totalStake} ETH...`);
+      const tx = await marketContract.placeBet(outcome, { value: stakeInWei });
+      
+      console.log("Waiting for confirmation...", tx.hash);
+      await tx.wait();
+      
+      setBetPlaced(true);
+      setTimeout(() => {
+        setBetPlaced(false);
+        clearAll();
+      }, 2500);
+
+    } catch (error: any) {
+      console.error("Transaction failed:", error);
+      alert(`Transaction failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsPlacing(false);
+    }
   };
 
   return (
@@ -180,9 +224,11 @@ export default function BetSlip() {
 
                 <button
                   onClick={handlePlaceBet}
-                  className="w-full bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] text-[var(--color-sidebar-bg)] font-black py-3 rounded-xl transition-all duration-200 text-sm tracking-wide shadow-lg shadow-green-500/20 active:scale-95"
+                  disabled={isPlacing}
+                  className={`w-full flex items-center justify-center gap-2 ${isPlacing ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] active:scale-95 shadow-lg shadow-green-500/20'} text-[var(--color-sidebar-bg)] font-black py-3 rounded-xl transition-all duration-200 text-sm tracking-wide`}
                 >
-                  PLACE BET · ${totalStake.toFixed(2)}
+                  {isPlacing ? <Loader2 size={18} className="animate-spin" /> : null}
+                  {isPlacing ? 'CONFIRM IN METAMASK...' : `PLACE BET · $${totalStake.toFixed(2)}`}
                 </button>
               </div>
             </>
