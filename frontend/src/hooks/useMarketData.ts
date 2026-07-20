@@ -41,7 +41,6 @@ export function useMarketData(marketAddress: string) {
           deadline: new Date(Number(info._deadline) * 1000),
           state: STATE_LABELS[Number(info._state)],
           totalPool: ethers.formatEther(info._totalPool),
-          isDemo: info._isDemo,
           winningOutcome: info._winningOutcome,
           userBets: {
             home: ethers.formatEther(userBetHome),

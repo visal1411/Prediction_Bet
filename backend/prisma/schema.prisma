@@ -17,9 +17,8 @@ model Event {
   teamHome        String
   teamAway        String
   eventDate       DateTime
-  externalApiId   String?          // SportsData.io GameID (null for demo markets)
+  externalApiId   String?          // SportsData.io GameID
   marketAddress   String?          // Deployed PredictionMarket contract address
-  isDemo          Boolean  @default(false)  // Mirrors PredictionMarket.isDemo
   status          String   @default("upcoming") // upcoming | open | locked | resolved | settled | cancelled
   result          Int?             // Winning outcome index (0=home, 1=away, 2=draw)
   totalPool       String   @default("0")    // Total ETH pool in wei (string for BigInt)

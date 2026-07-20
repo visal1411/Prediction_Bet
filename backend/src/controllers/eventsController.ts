@@ -3,13 +3,12 @@ import { prisma } from '../config/database';
 
 export const getEvents = async (req: Request, res: Response) => {
   try {
-    const { status, sport, isDemo } = req.query;
+    const { status, sport } = req.query;
     
     // Build query
     const where: any = {};
     if (status) where.status = String(status);
     if (sport) where.sport = String(sport);
-    if (isDemo !== undefined) where.isDemo = isDemo === 'true';
 
     const events = await prisma.event.findMany({
       where,

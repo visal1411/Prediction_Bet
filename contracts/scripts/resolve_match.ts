@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 
 async function main() {
     console.log("====================================================");
-    console.log("🔐 ADMIN PANEL (BACKEND): MANUALLY RESOLVING DEMO MARKET");
+    console.log("🔐 ADMIN PANEL (BACKEND): MANUALLY RESOLVING MARKET");
     console.log("====================================================");
 
     const [admin] = await ethers.getSigners();
@@ -22,10 +22,10 @@ async function main() {
 
     const factory = await ethers.getContractAt("MarketFactory", deployedAddresses.factoryAddress);
     
-    // Get the first Demo Market
-    const allDemoMarkets = await factory.getDemoMarkets();
+    // Get the first Market
+    const allDemoMarkets = await factory.getAllMarkets();
     if (allDemoMarkets.length === 0) {
-        console.error("❌ No Demo Markets found! Did you deploy one yet?");
+        console.error("❌ No Markets found! Did you deploy one yet?");
         return;
     }
 
@@ -36,13 +36,13 @@ async function main() {
     
     // Get Market state
     let state = await market.state();
-    if (state == 2) {
+    if (Number(state) == 2) {
        console.log("✅ Market is ALREADY RESOLVED. Users can claim their winnings now!");
        return;
     }
 
     // Lock the market (prevents any new bets)
-    if (state == 0) {
+    if (Number(state) == 0) {
        console.log("🔒 Locking market (preventing new bets)...");
        const lockTx = await (market.connect(admin) as any).lockMarket();
        await lockTx.wait();
@@ -54,7 +54,7 @@ async function main() {
 
     console.log(`🏆 Declaring Outcome Index [${WINNING_OUTCOME_INDEX}] as the WINNER!`);
     
-    // Resolve! This natively bypasses Chainlink because it's a Demo Market
+    // Resolve! This is resolved manually by the Admin
     const resolveTx = await (market.connect(admin) as any).resolve(WINNING_OUTCOME_INDEX);
     await resolveTx.wait();
 

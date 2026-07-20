@@ -127,7 +127,6 @@ export interface Market {
   poolAway: string;
   totalBettors: number;
   winningOutcome?: number;
-  isDemo?: boolean;
 }
 
 export const mockMarkets: Market[] = [
@@ -147,7 +146,6 @@ export const mockMarkets: Market[] = [
     poolDraw: '3.1',
     poolAway: '4.2',
     totalBettors: 34,
-    isDemo: true,
   },
   {
     id: '2',
@@ -165,7 +163,6 @@ export const mockMarkets: Market[] = [
     poolDraw: '1.8',
     poolAway: '2.4',
     totalBettors: 21,
-    isDemo: true,
   },
   {
     id: '3',
@@ -184,6 +181,5 @@ export const mockMarkets: Market[] = [
     poolAway: '10.6',
     totalBettors: 58,
     winningOutcome: 0,
-    isDemo: false,
   },
 ];
