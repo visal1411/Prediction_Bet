@@ -5,14 +5,13 @@ import {
   Trash2, CheckCircle2, XCircle, Clock, RefreshCw, Settings,
   ChevronDown, ChevronUp, Search, ExternalLink
 } from 'lucide-react';
-import { mockMarkets } from '../data/mockData';
-import type { Market } from '../data/mockData';
+import { fetchEvents } from '../api/events';
 import { getMarketContract } from '../app/contracts';
 
 
 // ── Helper Components ─────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: Market['status'] }) {
+function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
     open: {
       bg: 'bg-emerald-500/10 border-emerald-500/20',
@@ -86,6 +85,16 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'MARKETS' | 'DEMO' | 'CREATE' | 'EMERGENCY'>('MARKETS');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedMarket, setExpandedMarket] = useState<string | null>(null);
+  const [markets, setMarkets] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadMarkets = async () => {
+      const events = await fetchEvents();
+      // map id to eventId for admin panel UI compatibility
+      setMarkets(events.map((e: any) => ({ ...e, eventId: e.id, contractAddress: e.marketAddress || 'Pending...' })));
+    };
+    loadMarkets();
+  }, []);
 
   // Create Market form state
   const [createForm, setCreateForm] = useState({
@@ -151,19 +160,19 @@ export default function AdminPage() {
 
   // ── Filter markets by search ──────────────────────────────────────────────
 
-  const filteredMarkets = mockMarkets.filter(m =>
+  const filteredMarkets = markets.filter(m =>
     m.teamHome.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.teamAway.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.league.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (m.league || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.eventId.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // ── Stat calculations ─────────────────────────────────────────────────────
 
-  const openCount = mockMarkets.filter(m => m.status === 'open').length;
-  const lockedCount = mockMarkets.filter(m => m.status === 'locked').length;
-  const resolvedCount = mockMarkets.filter(m => m.status === 'resolved' || m.status === 'settled').length;
-  const totalPoolEth = mockMarkets.reduce((sum, m) => sum + parseFloat(m.totalPool), 0);
+  const openCount = markets.filter(m => m.status === 'open').length;
+  const lockedCount = markets.filter(m => m.status === 'locked').length;
+  const resolvedCount = markets.filter(m => m.status === 'resolved' || m.status === 'settled').length;
+  const totalPoolEth = markets.reduce((sum, m) => sum + parseFloat(m.totalPool), 0);
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-8">
@@ -358,7 +367,7 @@ export default function AdminPage() {
                                 {[
                                   { label: 'Contract', value: market.contractAddress },
                                   { label: 'Event Date', value: new Date(market.eventDate).toLocaleString() },
-                                  { label: 'Bet Deadline', value: new Date(market.deadline).toLocaleString() },
+                                  { label: 'Bet Deadline', value: new Date(new Date(market.eventDate).getTime() - 30*60000).toLocaleString() },
                                   { label: 'Status', value: market.status.toUpperCase() },
                                 ].map(detail => (
                                   <div key={detail.label} className="flex justify-between">
@@ -423,7 +432,7 @@ export default function AdminPage() {
             <h3 className="text-purple-400 font-bold mb-1">Live Presentation Mode</h3>
             <p className="text-[var(--color-text-muted)] text-sm">Use these markets during the class demo. They have the "isDemo" flag enabled, meaning you (the owner) can resolve them manually without waiting for the Chainlink Oracle or real live games.</p>
           </div>
-          {mockMarkets.filter(m => m.isDemo).map(market => (
+          {markets.filter(m => m.isDemo).map(market => (
             <div key={market.id} className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-xl p-5">
               <div className="flex justify-between items-center mb-4">
                 <div>

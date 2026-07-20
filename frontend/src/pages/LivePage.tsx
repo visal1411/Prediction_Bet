@@ -1,14 +1,31 @@
-import { allMatches, sportsCategories } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { sportsCategories } from '../data/mockData';
+import { fetchMappedMatches } from '../api/events';
 import MatchCard from '../components/main/MatchCard';
 import { Activity } from 'lucide-react';
 
 export default function LivePage() {
-  const liveMatches = allMatches.filter(m => m.isLive);
+  const [liveMatches, setLiveMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadMatches = async () => {
+      setLoading(true);
+      const matches = await fetchMappedMatches('open');
+      setLiveMatches(matches);
+      setLoading(false);
+    };
+    loadMatches();
+  }, []);
 
   const getSportEmoji = (sportName: string) => {
     const category = sportsCategories.find(c => c.name.toLowerCase() === sportName.toLowerCase());
     return category ? category.icon : '🏅';
   };
+
+  if (loading) {
+    return <div className="text-white py-20 text-center animate-pulse">Loading live matches...</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-8">

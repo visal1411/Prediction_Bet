@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { allMatches } from '../../data/mockData';
+import { fetchEvents } from '../../api/events';
 
 interface UpcomingMatchesProps {
   sportFilter?: string;
@@ -7,10 +8,51 @@ interface UpcomingMatchesProps {
 
 export default function UpcomingMatches({ sportFilter = 'all' }: UpcomingMatchesProps) {
   const navigate = useNavigate();
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  let matches = allMatches.filter(m => !m.isLive);
-  if (sportFilter !== 'all') {
-    matches = matches.filter(m => m.sport?.toLowerCase() === sportFilter.toLowerCase());
+  useEffect(() => {
+    const loadMatches = async () => {
+      setLoading(true);
+      // Fetch upcoming matches
+      const events = await fetchEvents('upcoming');
+      let filtered = events;
+      if (sportFilter !== 'all') {
+        filtered = filtered.filter((m: any) => m.sport?.toLowerCase() === sportFilter.toLowerCase());
+      }
+      
+      const mappedMatches = filtered.map((e: any) => {
+        let win1 = 60, draw = 10, win2 = 30;
+        try {
+          const total = BigInt(e.totalPool || '0');
+          if (total > 0n) {
+             win1 = Number((BigInt(e.poolHome || '0') * 100n) / total);
+             draw = Number((BigInt(e.poolDraw || '0') * 100n) / total);
+             win2 = Number((BigInt(e.poolAway || '0') * 100n) / total);
+          }
+        } catch(err) {}
+        
+        return {
+          id: e.id,
+          sport: e.sport,
+          league: e.league,
+          time: new Date(e.eventDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
+          team1: e.teamHome,
+          team2: e.teamAway,
+          score1: '-',
+          score2: '-',
+          ratio: { win1, draw: draw > 0 ? draw : null, win2 },
+          isLive: e.status === 'open'
+        };
+      });
+      setMatches(mappedMatches);
+      setLoading(false);
+    };
+    loadMatches();
+  }, [sportFilter]);
+
+  if (loading) {
+    return <div className="text-white mb-10 py-10 text-center animate-pulse">Loading matches...</div>;
   }
 
   return (
