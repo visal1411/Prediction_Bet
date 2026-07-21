@@ -1,19 +1,27 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router';
 import { useWallet } from '../context/Web3Context';
-import { User, Wallet, Shield, Activity, Edit2, Check, X, Settings } from 'lucide-react';
+import { User, Wallet, Shield, Activity, Edit2, Check, X, Settings, Coins, Loader2 } from 'lucide-react';
+import { fetchUserBets } from '../api/bets';
+import { getMarketContract } from '../app/contracts';
+import { ethers } from 'ethers';
 
 export default function ProfilePage() {
-  const { account, isConnecting, connectWallet } = useWallet();
+  const { account, provider, isConnecting, connectWallet } = useWallet();
   const [username, setUsername] = useState('Anon User');
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState('');
+  
+  const [userBets, setUserBets] = useState<any[]>([]);
+  const [isLoadingBets, setIsLoadingBets] = useState(false);
+  const [claimingAddress, setClaimingAddress] = useState<string | null>(null);
+  
+  const [stats, setStats] = useState({ total: 0, winRate: '0.0', winnings: '0.00' });
 
-  // TODO: Replace this with a check against the contract owner address
-  const isAdmin = true;
+  const adminWallet = import.meta.env.VITE_ADMIN_WALLET_ADDRESS;
+  const isAdmin = account && adminWallet && account.toLowerCase() === adminWallet.toLowerCase();
 
-
-  // Load from local storage
+  // Load from local storage and fetch bets
   useEffect(() => {
     if (account) {
       const savedName = localStorage.getItem(`profile_name_${account}`);
@@ -22,8 +30,91 @@ export default function ProfilePage() {
       } else {
         setUsername(`User_${account.slice(2, 6)}`);
       }
+      
+      const loadBets = async () => {
+        setIsLoadingBets(true);
+        const bets = await fetchUserBets(account);
+        
+        let resolvedCount = 0;
+        let wonCount = 0;
+        let totalWinnings = 0;
+        
+        for (let i = 0; i < bets.length; i++) {
+          const bet = bets[i];
+          const event = bet.event;
+          
+          if (event && (event.status === 'resolved' || event.status === 'settled')) {
+            resolvedCount++;
+            if (event.result === bet.outcome) {
+              wonCount++;
+              
+              // Double check with smart contract if it's already claimed
+              if (provider && event.marketAddress && bet.status !== 'claimed') {
+                try {
+                  const contract = getMarketContract(event.marketAddress, provider);
+                  const stake = await contract.getBet(bet.outcome, account);
+                  if (stake === 0n) {
+                    bet.status = 'claimed';
+                  }
+                } catch (e) {
+                  console.error("Failed to fetch stake", e);
+                }
+              }
+
+              const amountEth = parseFloat(ethers.formatEther(bet.amountWei || '0'));
+              const totalPool = parseFloat(ethers.formatEther(event.totalPool || '0'));
+              let outcomePoolStr = '0';
+              if (bet.outcome === 0) outcomePoolStr = event.poolHome;
+              else if (bet.outcome === 1) outcomePoolStr = event.poolAway;
+              else if (bet.outcome === 2) outcomePoolStr = event.poolDraw;
+              const outcomePool = parseFloat(ethers.formatEther(outcomePoolStr || '0'));
+              
+              if (outcomePool > 0 && totalPool > 0) {
+                 totalWinnings += (amountEth * totalPool) / outcomePool;
+              }
+            }
+          }
+        }
+        
+        setUserBets([...bets]);
+        
+        setStats({
+          total: bets.length,
+          winRate: resolvedCount > 0 ? ((wonCount / resolvedCount) * 100).toFixed(1) : '0.0',
+          winnings: totalWinnings.toFixed(2)
+        });
+        
+        setIsLoadingBets(false);
+      };
+      loadBets();
     }
   }, [account]);
+
+  const handleClaim = async (marketAddress: string) => {
+    if (!provider) return;
+    try {
+      setClaimingAddress(marketAddress);
+      const signer = await provider.getSigner();
+      const contract = getMarketContract(marketAddress, signer);
+      
+      const tx = await contract.claimWinnings();
+      await tx.wait();
+      
+      // Update bet status locally so the button disappears
+      setUserBets(prev => prev.map(bet => {
+        if (bet.event.marketAddress === marketAddress) {
+          return { ...bet, status: 'claimed' };
+        }
+        return bet;
+      }));
+      
+    } catch (err) {
+      console.error("Failed to claim winnings", err);
+      alert("Failed to claim winnings. Ensure you haven't already claimed or the market is resolved.");
+    } finally {
+      setClaimingAddress(null);
+    }
+  };
 
   const handleSave = () => {
     if (!tempName.trim()) return;
@@ -129,15 +220,15 @@ export default function ProfilePage() {
             <div className="space-y-4">
               <div className="bg-[var(--color-primary-bg)] rounded-xl p-3">
                 <div className="text-[var(--color-text-muted)] text-[10px] uppercase tracking-wider mb-1">Total Bets Placed</div>
-                <div className="text-2xl font-black text-white">0</div>
+                <div className="text-2xl font-black text-white">{stats.total}</div>
               </div>
               <div className="bg-[var(--color-primary-bg)] rounded-xl p-3">
                 <div className="text-[var(--color-text-muted)] text-[10px] uppercase tracking-wider mb-1">Win Rate</div>
-                <div className="text-2xl font-black text-[var(--color-accent-green)]">0.0%</div>
+                <div className="text-2xl font-black text-[var(--color-accent-green)]">{stats.winRate}%</div>
               </div>
               <div className="bg-[var(--color-primary-bg)] rounded-xl p-3">
                 <div className="text-[var(--color-text-muted)] text-[10px] uppercase tracking-wider mb-1">Total Winnings</div>
-                <div className="text-2xl font-black text-white">0.00 ETH</div>
+                <div className="text-2xl font-black text-white">{stats.winnings} ETH</div>
               </div>
             </div>
           </div>
@@ -155,12 +246,74 @@ export default function ProfilePage() {
           <div className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-2xl p-6 shadow-lg h-full min-h-[300px] flex flex-col">
             <h3 className="text-white font-bold mb-6">Recent Activity</h3>
 
-            <div className="flex-1 m-2 p-8 flex flex-col items-center justify-center min-h-[240px] text-center bg-[var(--color-primary-bg)] rounded-xl border-2 border-dashed border-[var(--color-border)]">
-              <div className="w-16 h-16 rounded-full bg-[var(--color-sidebar-bg)] flex items-center justify-center mb-5 border border-[var(--color-border)] shadow-sm">
-                <Activity size={24} className="text-[var(--color-text-muted)]" />
-              </div>
-              <p className="text-white font-bold text-lg mb-2">No activity yet</p>
-              <p className="text-[var(--color-text-muted)] text-sm max-w-xs mx-auto">Place some bets on your favorite sports to see your history appear here.</p>
+            <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
+              {isLoadingBets ? (
+                <div className="flex flex-col items-center justify-center h-48 text-[var(--color-text-muted)]">
+                  <Loader2 className="animate-spin mb-2" size={32} />
+                  <p>Loading your bets...</p>
+                </div>
+              ) : userBets.length === 0 ? (
+                <div className="m-2 p-8 flex flex-col items-center justify-center min-h-[240px] text-center bg-[var(--color-primary-bg)] rounded-xl border-2 border-dashed border-[var(--color-border)]">
+                  <div className="w-16 h-16 rounded-full bg-[var(--color-sidebar-bg)] flex items-center justify-center mb-5 border border-[var(--color-border)] shadow-sm">
+                    <Activity size={24} className="text-[var(--color-text-muted)]" />
+                  </div>
+                  <p className="text-white font-bold text-lg mb-2">No activity yet</p>
+                  <p className="text-[var(--color-text-muted)] text-sm max-w-xs mx-auto">Place some bets on your favorite sports to see your history appear here.</p>
+                </div>
+              ) : (
+                userBets.map((bet) => {
+                  const event = bet.event;
+                  const outcomes = ["Home Win", "Away Win", "Draw"];
+                  const betOutcomeText = outcomes[bet.outcome] || `Outcome ${bet.outcome}`;
+                  const amountEth = ethers.formatEther(bet.amountWei || '0');
+                  
+                  // Determine status
+                  const isResolved = event.status === 'resolved';
+                  const isWinner = isResolved && event.result === bet.outcome;
+                  const isClaimed = bet.status === 'claimed';
+                  
+                  return (
+                    <div key={bet.id} className="bg-[var(--color-primary-bg)] border border-[var(--color-border)] rounded-xl p-4 hover:border-[var(--color-accent-blue)] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase ${
+                            isResolved 
+                              ? isWinner ? 'bg-[var(--color-accent-green)]/20 text-[var(--color-accent-green)]' : 'bg-red-500/20 text-red-500'
+                              : 'bg-amber-500/20 text-amber-500'
+                          }`}>
+                            {isResolved ? (isWinner ? 'WON' : 'LOST') : 'PENDING'}
+                          </span>
+                          <span className="text-[var(--color-text-muted)] text-xs">{new Date(bet.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <h4 className="text-white font-bold">{event.teamHome} vs {event.teamAway}</h4>
+                        <div className="text-sm text-[var(--color-text-muted)] mt-1 flex items-center gap-2">
+                          <span>Prediction: <strong className="text-white">{betOutcomeText}</strong></span>
+                          <span>•</span>
+                          <span>Stake: <strong className="text-white">{Number(amountEth).toFixed(4)} ETH</strong></span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-end">
+                        {isWinner && !isClaimed && (
+                          <button 
+                            onClick={() => handleClaim(event.marketAddress)}
+                            disabled={claimingAddress === event.marketAddress}
+                            className="bg-[var(--color-accent-green)] hover:bg-green-500 disabled:opacity-50 text-[var(--color-sidebar-bg)] font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm shadow-lg shadow-green-500/20"
+                          >
+                            {claimingAddress === event.marketAddress ? <Loader2 className="animate-spin" size={16} /> : <Coins size={16} />}
+                            Claim Winnings
+                          </button>
+                        )}
+                        {isClaimed && (
+                          <div className="text-[var(--color-accent-green)] font-bold text-sm flex items-center gap-1">
+                            <Check size={16} /> Claimed
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

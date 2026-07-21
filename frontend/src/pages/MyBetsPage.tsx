@@ -4,6 +4,7 @@ import { useWallet } from '../context/Web3Context';
 import { getFactoryContract, getMarketContract, FACTORY_ADDRESS } from '../app/contracts';
 import { ethers } from 'ethers';
 import { useClaimWinnings } from '../hooks/useClaimWinnings';
+import { fetchUserBets } from '../api/bets';
 
 interface LiveBet {
   id: string; // contract address
@@ -15,7 +16,7 @@ interface LiveBet {
   selection: string;
   stake: number;
   potentialPayout: number;
-  status: 'ACTIVE' | 'WON' | 'LOST';
+  status: 'ACTIVE' | 'WON' | 'LOST' | 'CLAIMED';
   oddsLabel: string;
 }
 
@@ -27,6 +28,7 @@ function BetRow({ bet, onClaimSuccess }: { bet: LiveBet, onClaimSuccess: () => v
       case 'ACTIVE': return <Clock className="text-blue-400" size={18} />;
       case 'WON': return <CheckCircle2 className="text-[var(--color-accent-green)]" size={18} />;
       case 'LOST': return <XCircle className="text-red-500" size={18} />;
+      case 'CLAIMED': return <CheckCircle2 className="text-gray-400" size={18} />;
       default: return null;
     }
   };
@@ -36,6 +38,7 @@ function BetRow({ bet, onClaimSuccess }: { bet: LiveBet, onClaimSuccess: () => v
       case 'ACTIVE': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
       case 'WON': return 'bg-[var(--color-accent-green)]/10 text-[var(--color-accent-green)] border-[var(--color-accent-green)]/20';
       case 'LOST': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'CLAIMED': return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
       default: return '';
     }
   };
@@ -117,69 +120,75 @@ export default function MyBetsPage() {
   const [loading, setLoading] = useState(false);
 
   const fetchBlockchainBets = async () => {
-    if (!provider || !account) return;
+    if (!account || !provider) return;
     try {
       setLoading(true);
-      const factory = getFactoryContract(FACTORY_ADDRESS, provider);
-      const allMarketsAddress: string[] = await factory.getAllMarkets();
-      
+      const bets = await fetchUserBets(account);
       const loadedBets: LiveBet[] = [];
-      for (const address of allMarketsAddress) {
-        const contract = getMarketContract(address, provider);
-        const info = await contract.getMarketInfo(); 
-        // 0=eventId, 1=outcomes, 2=deadline, 3=state, 4=totalPool, 5=winningOutcome
-
-        let userStake = 0n;
-        let userOutcome = -1;
-        for (let i = 0; i < info[1].length; i++) {
-          const stake = await contract.getBet(i, account);
-          if (stake > 0n) {
-            userStake = stake;
-            userOutcome = i;
-            break;
+      
+      for (const bet of bets) {
+        const event = bet.event;
+        const amountEth = ethers.formatEther(bet.amountWei || '0');
+        const outcomes = ["Home Win", "Away Win", "Draw"];
+        const selection = outcomes[bet.outcome] || `Outcome ${bet.outcome}`;
+        
+        let status: 'ACTIVE' | 'WON' | 'LOST' | 'CLAIMED' = 'ACTIVE';
+        let payout = 0;
+        let oddsLabel = "0.00x";
+        
+        if (event.marketAddress && provider) {
+          try {
+            const contract = getMarketContract(event.marketAddress, provider);
+            const info = await contract.getMarketInfo(); 
+            // 0=eventId, 1=outcomes, 2=deadline, 3=state, 4=totalPool, 5=winningOutcome
+            
+            const stateNum = Number(info[3]);
+            if (stateNum === 2 || stateNum === 3) { // Resolved or Settled
+              if (Number(info[5]) === bet.outcome) {
+                // Check if they already claimed
+                const currentStake = await contract.getBet(bet.outcome, account);
+                if (currentStake === 0n || bet.status === 'claimed') {
+                  status = 'CLAIMED';
+                } else {
+                  status = 'WON';
+                }
+              } else {
+                status = 'LOST';
+              }
+            } else {
+              // If it's not resolved on-chain, but the backend thinks it's claimed (rare edge case)
+              if (bet.status === 'claimed') status = 'CLAIMED';
+            }
+            
+            const outcomePool = await contract.outcomePools(bet.outcome);
+            const totalPool = info[4];
+            
+            if (outcomePool > 0n && totalPool > 0n) {
+               const outNum = Number(ethers.formatEther(outcomePool));
+               const totNum = Number(ethers.formatEther(totalPool));
+               payout = (parseFloat(amountEth) * totNum) / outNum;
+               oddsLabel = (totNum / outNum).toFixed(2) + 'x';
+            }
+          } catch (e) {
+            console.error("Error fetching live odds for bet", bet.id, e);
           }
         }
         
-        if (userStake > 0n) {
-          const outcomePool = await contract.outcomePools(userOutcome);
-          
-          let status: 'ACTIVE' | 'WON' | 'LOST' = 'ACTIVE';
-          const stateNum = Number(info[3]);
-          if (stateNum === 2 || stateNum === 3) { // Resolved or Settled
-            if (Number(info[5]) === userOutcome) {
-              status = 'WON';
-            } else {
-              status = 'LOST';
-            }
-          }
-          
-          let payout = 0n;
-          let oddsLabel = "0.00x";
-          if (outcomePool > 0n && info[4] > 0n) {
-             payout = (userStake * info[4]) / outcomePool;
-             oddsLabel = (Number(info[4]) / Number(outcomePool)).toFixed(2) + 'x';
-          }
-
-          let decodedMatch = "Demo Match";
-          try { decodedMatch = ethers.decodeBytes32String(info[0]); } catch (e) {}
-
-          loadedBets.push({
-            id: address,
-            marketAddress: address,
-            date: new Date(Number(info[2]) * 1000).toLocaleString(),
-            match: decodedMatch,
+        loadedBets.push({
+            id: bet.id,
+            marketAddress: event.marketAddress || '',
+            date: new Date(bet.createdAt).toLocaleString(),
+            match: `${event.teamHome} vs ${event.teamAway}`,
             sport: 'Prediction',
             market: 'Match Winner',
-            selection: info[1][userOutcome],
-            stake: parseFloat(ethers.formatEther(userStake)),
-            potentialPayout: parseFloat(ethers.formatEther(payout)),
+            selection,
+            stake: parseFloat(amountEth),
+            potentialPayout: payout,
             status,
             oddsLabel,
-          });
-        }
+        });
       }
-      // Sort newest first
-      setLiveBets(loadedBets.reverse());
+      setLiveBets(loadedBets);
     } catch (err) {
       console.error(err);
     } finally {
@@ -195,7 +204,7 @@ export default function MyBetsPage() {
 
   const filteredBets = liveBets.filter(bet => {
     if (activeTab === 'ACTIVE') return bet.status === 'ACTIVE';
-    if (activeTab === 'SETTLED') return bet.status === 'WON' || bet.status === 'LOST';
+    if (activeTab === 'SETTLED') return bet.status === 'WON' || bet.status === 'LOST' || bet.status === 'CLAIMED';
     return true;
   });
 

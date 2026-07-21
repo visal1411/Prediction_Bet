@@ -2,13 +2,15 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export interface BetSelection {
   id: string;          // unique key e.g. "match-1-win1"
-  matchId: number;
+  matchId: string | number;
   matchLabel: string;  // "Manchester Utd vs Arsenal"
   sport: string;       // "FOOTBALL"
   market: string;      // "Full Time Result"
   selection: string;   // "Manchester Utd"
   odds: number;
   stake: number;
+  marketAddress?: string;
+  outcomeIndex?: number;
 }
 
 interface BetSlipContextValue {

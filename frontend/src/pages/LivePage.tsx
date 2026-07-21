@@ -12,7 +12,7 @@ export default function LivePage() {
     const loadMatches = async () => {
       setLoading(true);
       const matches = await fetchMappedMatches('open');
-      setLiveMatches(matches);
+      setLiveMatches(matches.filter((m: any) => m.isLive));
       setLoading(false);
     };
     loadMatches();

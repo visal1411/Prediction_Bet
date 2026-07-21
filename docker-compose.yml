@@ -1,5 +1,17 @@
 services:
   # ----------------------------------------
+  # BLOCKCHAIN SERVICE (Hardhat Node)
+  # ----------------------------------------
+  blockchain:
+    build:
+      context: ./contracts
+      dockerfile: Dockerfile
+    container_name: sportbet-blockchain
+    restart: unless-stopped
+    ports:
+      - "8545:8545"
+
+  # ----------------------------------------
   # DATABASE SERVICE (MySQL)
   # ----------------------------------------
   db:
@@ -35,9 +47,9 @@ services:
       db:
         condition: service_healthy
     # Optional: Map current code for hot reloading if you prefer
-    # volumes:
-    #   - ./backend:/app
-    #   - /app/node_modules
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
 
   # ----------------------------------------
   # FRONTEND SERVICE (React + Vite)

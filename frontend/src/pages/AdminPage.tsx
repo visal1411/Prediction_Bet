@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWallet } from '../context/Web3Context';
 import {
   Shield, Plus, AlertTriangle, Activity, Eye, Pause, Play,
-  Trash2, CheckCircle2, XCircle, Clock, RefreshCw, Settings,
+  Trash2, CheckCircle2, Clock, RefreshCw, Settings,
   ChevronDown, ChevronUp, Search, ExternalLink
 } from 'lucide-react';
-import { fetchEvents } from '../api/events';
-import { getMarketContract } from '../app/contracts';
+import { fetchEvents, createNewEvent } from '../api/events';
+import { getMarketContract, getFactoryContract, FACTORY_ADDRESS } from '../app/contracts';
+import { ethers } from 'ethers';
 
 
 // ── Helper Components ─────────────────────────────────────────────────────────
@@ -38,9 +39,14 @@ function StatusBadge({ status }: { status: string }) {
       text: 'text-red-400',
       icon: <Pause size={12} />,
     },
+    upcoming: {
+      bg: 'bg-gray-500/10 border-gray-500/20',
+      text: 'text-gray-400',
+      icon: <Clock size={12} />,
+    },
   };
 
-  const c = config[status];
+  const c = config[status] || config['upcoming'];
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-bold uppercase tracking-wider ${c.bg} ${c.text}`}>
@@ -87,6 +93,9 @@ export default function AdminPage() {
   const [expandedMarket, setExpandedMarket] = useState<string | null>(null);
   const [markets, setMarkets] = useState<any[]>([]);
 
+  const adminWallet = import.meta.env.VITE_ADMIN_WALLET_ADDRESS;
+  const isAdmin = account && adminWallet && account.toLowerCase() === adminWallet.toLowerCase();
+
   useEffect(() => {
     const loadMarkets = async () => {
       const events = await fetchEvents();
@@ -107,6 +116,77 @@ export default function AdminPage() {
     externalApiId: '',
     deadlineMinutesBefore: 30,
   });
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateMarket = async () => {
+    if (!account || !signer) {
+      alert("Please connect your admin wallet first.");
+      return;
+    }
+    if (!createForm.eventDate || !createForm.eventTime || !createForm.teamHome || !createForm.teamAway) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      const factory = getFactoryContract(FACTORY_ADDRESS, signer);
+      
+      const uuid = Math.random().toString(36).substring(2, 15);
+      const eventIdBytes32 = ethers.id(uuid); // keccak256
+      
+      const outcomes = [`${createForm.teamHome} Win`, `${createForm.teamAway} Win`, 'Draw'];
+      
+      const eventDateObj = new Date(`${createForm.eventDate}T${createForm.eventTime}`);
+      const deadlineDate = new Date(eventDateObj.getTime() - createForm.deadlineMinutesBefore * 60000);
+      const deadline = Math.floor(deadlineDate.getTime() / 1000);
+
+      if (deadline < Date.now() / 1000) {
+        alert("Deadline must be in the future!");
+        setIsCreating(false);
+        return;
+      }
+
+      const tx = await factory.createMarket(eventIdBytes32, outcomes, deadline);
+      const receipt = await tx.wait();
+
+      let marketAddress = "";
+      for (const log of receipt.logs) {
+        try {
+          const parsed = factory.interface.parseLog(log);
+          if (parsed && parsed.name === 'MarketCreated') {
+            marketAddress = parsed.args.marketAddress;
+            break;
+          }
+        } catch (e) {}
+      }
+
+      if (!marketAddress) throw new Error("Could not find MarketCreated event in tx receipt");
+
+      await createNewEvent({
+        sport: createForm.sport,
+        league: createForm.league,
+        teamHome: createForm.teamHome,
+        teamAway: createForm.teamAway,
+        eventDate: eventDateObj.toISOString(),
+        externalApiId: createForm.externalApiId || uuid,
+        marketAddress,
+        status: 'open'
+      });
+
+      alert("Market deployed successfully at " + marketAddress);
+      
+      const events = await fetchEvents();
+      setMarkets(events.map((e: any) => ({ ...e, eventId: e.id, contractAddress: e.marketAddress || 'Pending...' })));
+      setActiveTab('MARKETS');
+      
+    } catch (err: any) {
+      console.error(err);
+      alert("Error creating market: " + (err.reason || err.message));
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   // Manual resolution state
   const [resolveMarketId, setResolveMarketId] = useState('');
@@ -135,9 +215,47 @@ export default function AdminPage() {
     }
   };
 
+  const handlePauseAll = async () => {
+    if (!signer) return alert("Wallet not connected");
+    const openMarkets = markets.filter(m => m.status === 'open' && m.contractAddress);
+    if (openMarkets.length === 0) return alert("No open markets to pause.");
+    
+    if (!confirm(`Are you sure you want to pause ${openMarkets.length} markets? This will require ${openMarkets.length} transaction confirmations.`)) return;
+    
+    let success = 0;
+    for (const m of openMarkets) {
+      try {
+        const contract = getMarketContract(m.contractAddress, signer);
+        const tx = await contract.pause();
+        await tx.wait();
+        success++;
+      } catch (err) {
+        console.error("Failed to pause", m.contractAddress, err);
+      }
+    }
+    alert(`Successfully paused ${success} out of ${openMarkets.length} markets.`);
+  };
+
+  const handleUnpauseAll = async () => {
+    if (!signer) return alert("Wallet not connected");
+    // Unfortunately we don't track 'paused' in DB right now, but we can just unpause everything that the admin thinks is paused
+    const marketToUnpause = prompt("Enter the contract address you wish to unpause:");
+    if (!marketToUnpause) return;
+    
+    try {
+      const contract = getMarketContract(marketToUnpause, signer);
+      const tx = await contract.unpause();
+      await tx.wait();
+      alert("Successfully unpaused the market.");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to unpause: " + (err.reason || err.message));
+    }
+  };
+
   // ── Not connected ─────────────────────────────────────────────────────────
 
-  if (!account) {
+  if (!account || !isAdmin) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
         <div className="w-24 h-24 bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-full flex items-center justify-center mb-6 shadow-xl">
@@ -147,13 +265,15 @@ export default function AdminPage() {
         <p className="text-[var(--color-text-muted)] mb-8 max-w-md">
           Connect your admin wallet to access the market management panel. Only the contract owner can create and manage markets.
         </p>
-        <button
-          onClick={connectWallet}
-          disabled={isConnecting}
-          className="bg-[var(--color-accent-blue)] hover:bg-blue-600 disabled:opacity-50 text-white font-bold px-8 py-3 rounded-lg transition-colors shadow-lg shadow-blue-500/20"
-        >
-          {isConnecting ? 'Connecting...' : 'Connect Admin Wallet'}
-        </button>
+        {!account && (
+          <button
+            onClick={connectWallet}
+            disabled={isConnecting}
+            className="bg-[var(--color-accent-blue)] hover:bg-blue-600 disabled:opacity-50 text-white font-bold px-8 py-3 rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+          >
+            {isConnecting ? 'Connecting...' : 'Connect Admin Wallet'}
+          </button>
+        )}
       </div>
     );
   }
@@ -161,10 +281,10 @@ export default function AdminPage() {
   // ── Filter markets by search ──────────────────────────────────────────────
 
   const filteredMarkets = markets.filter(m =>
-    m.teamHome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.teamAway.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (m.teamHome || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (m.teamAway || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (m.league || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.eventId.toLowerCase().includes(searchQuery.toLowerCase())
+    (m.eventId || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // ── Stat calculations ─────────────────────────────────────────────────────
@@ -172,7 +292,7 @@ export default function AdminPage() {
   const openCount = markets.filter(m => m.status === 'open').length;
   const lockedCount = markets.filter(m => m.status === 'locked').length;
   const resolvedCount = markets.filter(m => m.status === 'resolved' || m.status === 'settled').length;
-  const totalPoolEth = markets.reduce((sum, m) => sum + parseFloat(m.totalPool), 0);
+  const totalPoolEth = markets.reduce((sum, m) => sum + parseFloat(ethers.formatEther(m.totalPool || '0')), 0);
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-8">
@@ -242,11 +362,10 @@ export default function AdminPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition-all relative ${
-              activeTab === tab.id
-                ? 'text-white'
-                : 'text-[var(--color-text-muted)] hover:text-gray-300'
-            }`}
+            className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition-all relative ${activeTab === tab.id
+              ? 'text-white'
+              : 'text-[var(--color-text-muted)] hover:text-gray-300'
+              }`}
           >
             {tab.icon}
             {tab.label}
@@ -313,7 +432,7 @@ export default function AdminPage() {
 
                         <div className="flex items-center gap-6">
                           <div className="text-right">
-                            <div className="text-white font-bold">{market.totalPool} ETH</div>
+                            <div className="text-white font-bold">{parseFloat(ethers.formatEther(market.totalPool || '0')).toFixed(2)} ETH</div>
                             <div className="text-[var(--color-text-muted)] text-xs">{market.totalBettors} bettors</div>
                           </div>
                           <StatusBadge status={market.status} />
@@ -339,9 +458,9 @@ export default function AdminPage() {
                               <h4 className="text-white font-bold text-sm mb-3">Pool Distribution</h4>
                               <div className="space-y-3">
                                 {[
-                                  { label: `${market.teamHome} (Home)`, val: market.poolHome, pct: (parseFloat(market.poolHome) / parseFloat(market.totalPool) * 100) || 0, color: 'bg-blue-500' },
-                                  { label: 'Draw', val: market.poolDraw, pct: (parseFloat(market.poolDraw) / parseFloat(market.totalPool) * 100) || 0, color: 'bg-amber-500' },
-                                  { label: `${market.teamAway} (Away)`, val: market.poolAway, pct: (parseFloat(market.poolAway) / parseFloat(market.totalPool) * 100) || 0, color: 'bg-red-500' },
+                                  { label: `${market.teamHome || 'Home'} (Home)`, val: parseFloat(ethers.formatEther(market.poolHome || '0')).toFixed(2), pct: (parseFloat(market.poolHome || '0') / parseFloat(market.totalPool || '1') * 100) || 0, color: 'bg-blue-500' },
+                                  { label: 'Draw', val: parseFloat(ethers.formatEther(market.poolDraw || '0')).toFixed(2), pct: (parseFloat(market.poolDraw || '0') / parseFloat(market.totalPool || '1') * 100) || 0, color: 'bg-amber-500' },
+                                  { label: `${market.teamAway || 'Away'} (Away)`, val: parseFloat(ethers.formatEther(market.poolAway || '0')).toFixed(2), pct: (parseFloat(market.poolAway || '0') / parseFloat(market.totalPool || '1') * 100) || 0, color: 'bg-red-500' },
                                 ].map(pool => (
                                   <div key={pool.label}>
                                     <div className="flex justify-between text-xs mb-1">
@@ -362,9 +481,9 @@ export default function AdminPage() {
                               <div className="space-y-3">
                                 {[
                                   { label: 'Contract', value: market.contractAddress },
-                                  { label: 'Event Date', value: new Date(market.eventDate).toLocaleString() },
-                                  { label: 'Bet Deadline', value: new Date(new Date(market.eventDate).getTime() - 30*60000).toLocaleString() },
-                                  { label: 'Status', value: market.status.toUpperCase() },
+                                  { label: 'Event Date', value: market.eventDate ? new Date(market.eventDate).toLocaleString() : 'N/A' },
+                                  { label: 'Bet Deadline', value: market.eventDate ? new Date(new Date(market.eventDate).getTime() - 30 * 60000).toLocaleString() : 'N/A' },
+                                  { label: 'Status', value: (market.status || 'unknown').toUpperCase() },
                                 ].map(detail => (
                                   <div key={detail.label} className="flex justify-between">
                                     <span className="text-[var(--color-text-muted)] text-xs">{detail.label}</span>
@@ -380,13 +499,42 @@ export default function AdminPage() {
                                   Etherscan
                                 </button>
                                 {market.status === 'open' && (
-                                  <button className="flex-1 flex items-center justify-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 text-xs font-bold py-2 rounded-lg transition-colors">
+                                  <button onClick={async () => {
+                                    try {
+                                      if(!signer) return;
+                                      const contract = getMarketContract(market.contractAddress, signer);
+                                      const tx = await contract.pause();
+                                      await tx.wait();
+                                      
+                                      // Sync with backend
+                                      const API_URL = import.meta.env.VITE_API_URL 
+                                        ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') + '/api'
+                                        : 'http://localhost:3001/api';
+                                      
+                                      await fetch(`${API_URL}/admin/markets/${market.eventId}/status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ status: 'locked' })
+                                      });
+                                      
+                                      setMarkets(markets.map((m: any) => m.eventId === market.eventId ? { ...m, status: 'locked' } : m));
+                                      
+                                      alert("Market paused.");
+                                    } catch(e: any) { alert("Failed to pause: " + (e.reason || e.message)); }
+                                  }} className="flex-1 flex items-center justify-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 text-xs font-bold py-2 rounded-lg transition-colors">
                                     <Pause size={12} />
                                     Pause
                                   </button>
                                 )}
                                 {market.status === 'locked' && (
-                                  <button className="flex-1 flex items-center justify-center gap-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 text-xs font-bold py-2 rounded-lg transition-colors">
+                                  <button onClick={async () => {
+                                    try {
+                                      if(!signer) return;
+                                      // Optional force resolve logic could be added here, currently just switches to emergency tab
+                                      setActiveTab('EMERGENCY');
+                                      setResolveMarketId(market.contractAddress);
+                                    } catch(e: any) {}
+                                  }} className="flex-1 flex items-center justify-center gap-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 text-xs font-bold py-2 rounded-lg transition-colors">
                                     <RefreshCw size={12} />
                                     Force Resolve
                                   </button>
@@ -403,7 +551,7 @@ export default function AdminPage() {
                                 <span className="text-emerald-400 font-bold text-sm">Resolved — </span>
                                 <span className="text-white font-bold text-sm">
                                   {market.winningOutcome === 0 ? `${market.teamHome} Win` :
-                                   market.winningOutcome === 1 ? `${market.teamAway} Win` : 'Draw'}
+                                    market.winningOutcome === 1 ? `${market.teamAway} Win` : 'Draw'}
                                 </span>
                               </div>
                             </div>
@@ -420,51 +568,6 @@ export default function AdminPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-<<<<<<< HEAD
-          TAB: DEMO MARKETS
-          ═══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'DEMO' && (
-        <div className="space-y-4">
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-5 mb-6">
-            <h3 className="text-purple-400 font-bold mb-1">Live Presentation Mode</h3>
-            <p className="text-[var(--color-text-muted)] text-sm">Use these markets during the class demo. They have the "isDemo" flag enabled, meaning you (the owner) can resolve them manually without waiting for the Chainlink Oracle or real live games.</p>
-          </div>
-          {markets.filter(m => m.isDemo).map(market => (
-            <div key={market.id} className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-xl p-5">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded mr-2">DEMO MARKET</span>
-                  <span className="text-gray-400 font-mono text-sm">{market.eventId}</span>
-                  <h3 className="text-white font-bold text-xl mt-1">{market.teamHome} vs {market.teamAway}</h3>
-                </div>
-                <div className="text-right">
-                  <StatusBadge status={market.status} />
-                  <div className="text-white font-bold mt-2">{market.totalPool} ETH Pool</div>
-                </div>
-              </div>
-              
-              <div className="bg-[var(--color-primary-bg)] rounded-xl p-4 border border-[var(--color-border)]">
-                <p className="text-sm text-gray-400 mb-3 text-center uppercase tracking-wider font-bold">Manual Resolution Controls</p>
-                <div className="flex gap-3">
-                  <button onClick={() => alert(`Resolved ${market.eventId} as ${market.teamHome} Win`)} className="flex-1 py-3 px-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-bold transition-all text-sm">
-                    🏆 Declare: {market.teamHome} Win
-                  </button>
-                  <button onClick={() => alert(`Resolved ${market.eventId} as Draw`)} className="flex-1 py-3 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg font-bold transition-all text-sm">
-                    🤝 Declare: Draw
-                  </button>
-                  <button onClick={() => alert(`Resolved ${market.eventId} as ${market.teamAway} Win`)} className="flex-1 py-3 px-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg font-bold transition-all text-sm">
-                    🏆 Declare: {market.teamAway} Win
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-=======
->>>>>>> effdc6e6507784a7a05dbe46735cd948671722bd
           TAB: CREATE MARKET
           ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'CREATE' && (
@@ -596,7 +699,7 @@ export default function AdminPage() {
                   <div>
                     <p className="text-amber-400 font-bold text-sm mb-1">This will deploy a smart contract</p>
                     <p className="text-[var(--color-text-muted)] text-xs leading-relaxed">
-                      Creating a market deploys a new <code className="text-white bg-[var(--color-primary-bg)] px-1.5 py-0.5 rounded">PredictionMarket.sol</code> contract to the blockchain via the MarketFactory. 
+                      Creating a market deploys a new <code className="text-white bg-[var(--color-primary-bg)] px-1.5 py-0.5 rounded">PredictionMarket.sol</code> contract to the blockchain via the MarketFactory.
                       This requires a transaction and gas fees on the connected network.
                     </p>
                   </div>
@@ -605,10 +708,12 @@ export default function AdminPage() {
 
               {/* Submit */}
               <button
-                className="w-full bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] text-[var(--color-sidebar-bg)] font-black py-4 rounded-xl transition-all duration-200 text-sm tracking-wide shadow-lg shadow-green-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
+                onClick={handleCreateMarket}
+                disabled={isCreating}
+                className="w-full bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--color-sidebar-bg)] font-black py-4 rounded-xl transition-all duration-200 text-sm tracking-wide shadow-lg shadow-green-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                <Plus size={18} strokeWidth={3} />
-                DEPLOY MARKET CONTRACT
+                {isCreating ? <RefreshCw size={18} className="animate-spin" /> : <Plus size={18} strokeWidth={3} />}
+                {isCreating ? 'DEPLOYING TO BLOCKCHAIN...' : 'DEPLOY MARKET CONTRACT'}
               </button>
             </div>
           </div>
@@ -626,7 +731,7 @@ export default function AdminPage() {
             <div>
               <h3 className="text-red-400 font-bold mb-1">Emergency Controls</h3>
               <p className="text-[var(--color-text-muted)] text-sm leading-relaxed">
-                These actions are irreversible or have significant impact. Use only when the oracle fails or in case of an emergency. 
+                These actions are irreversible or have significant impact. Use only when the oracle fails or in case of an emergency.
                 All actions require the contract owner's wallet signature.
               </p>
             </div>
@@ -645,17 +750,17 @@ export default function AdminPage() {
                 </div>
               </div>
               <p className="text-[var(--color-text-muted)] text-sm mb-6 leading-relaxed">
-                Pausing the contract prevents all new bets from being placed and blocks withdrawals. 
+                Pausing the contract prevents all new bets from being placed and blocks withdrawals.
                 Use this if you detect suspicious activity or a contract vulnerability.
               </p>
               <div className="flex gap-3">
-                <button className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-bold py-3 rounded-xl transition-colors text-sm">
+                <button onClick={handlePauseAll} className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-bold py-3 rounded-xl transition-colors text-sm">
                   <Pause size={16} />
                   Pause All
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 font-bold py-3 rounded-xl transition-colors text-sm">
+                <button onClick={handleUnpauseAll} className="flex-1 flex items-center justify-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 font-bold py-3 rounded-xl transition-colors text-sm">
                   <Play size={16} />
-                  Unpause All
+                  Unpause Single
                 </button>
               </div>
             </div>
@@ -698,11 +803,10 @@ export default function AdminPage() {
                       <button
                         key={opt.value}
                         onClick={() => setResolveOutcome(opt.value)}
-                        className={`py-3 rounded-xl text-sm font-bold transition-all duration-200 border ${
-                          resolveOutcome === opt.value
-                            ? 'bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)] text-white shadow-lg shadow-blue-500/20'
-                            : 'bg-[var(--color-primary-bg)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-gray-500 hover:text-white'
-                        }`}
+                        className={`py-3 rounded-xl text-sm font-bold transition-all duration-200 border ${resolveOutcome === opt.value
+                          ? 'bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)] text-white shadow-lg shadow-blue-500/20'
+                          : 'bg-[var(--color-primary-bg)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-gray-500 hover:text-white'
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -722,32 +826,19 @@ export default function AdminPage() {
             </div>
 
             {/* Cancel Market */}
-            <div className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-2xl p-6">
+            <div className="bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-2xl p-6 opacity-50">
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-red-500/10 p-2 rounded-lg border border-red-500/20">
                   <Trash2 size={18} className="text-red-400" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold">Cancel Market</h3>
-                  <p className="text-[var(--color-text-muted)] text-xs">Refund all bettors</p>
+                  <p className="text-[var(--color-text-muted)] text-xs">Unsupported Feature</p>
                 </div>
               </div>
               <p className="text-[var(--color-text-muted)] text-sm mb-4 leading-relaxed">
-                Cancelling a market refunds all bettors their original stake. 
-                Use this if the event is cancelled or postponed.
+                The current `PredictionMarket.sol` smart contract does not support cancelling or refunding after deployment.
               </p>
-
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Market contract address (0x...)"
-                  className="w-full bg-[var(--color-primary-bg)] border border-[var(--color-border)] rounded-xl py-3 px-4 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors font-mono"
-                />
-                <button className="w-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-bold py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
-                  <XCircle size={16} />
-                  Cancel Market & Refund
-                </button>
-              </div>
             </div>
 
 

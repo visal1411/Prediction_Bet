@@ -17,7 +17,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div className="flex flex-1 overflow-hidden">
         <SportsLobby />
         <main className="flex-1 overflow-y-auto bg-[var(--color-primary-bg)]">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
         <BetSlip />
       </div>
@@ -55,4 +57,31 @@ export default function AppLayout({ children }: AppLayoutProps) {
       )}
     </div>
   );
+}
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 bg-red-900/20 text-red-400 m-8 rounded-xl border border-red-500/30">
+          <h2 className="text-xl font-bold mb-4">Something went wrong.</h2>
+          <pre className="text-xs whitespace-pre-wrap font-mono bg-black/50 p-4 rounded-lg">
+            {this.state.error?.message}
+            {'\n\n'}
+            {this.state.error?.stack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }

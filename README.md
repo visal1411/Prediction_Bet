@@ -1,17 +1,29 @@
 # 🏟️ SportBet — Decentralized Sports Prediction Market
 
-A blockchain-powered sports betting DApp where users bet on real sporting events, and outcomes are automatically resolved using real-world data — no middleman, no trust required.
+A blockchain-powered sports betting DApp (Decentralized Application) that allows users to place wagers on real-world sporting events using cryptocurrency. 
 
 ---
 
-## 💡 What Is This?
+## 🎯 The Problem It Solves
+
+Traditional sports betting platforms suffer from several inherent flaws:
+1. **Centralized Custody:** Users must deposit funds into a platform's wallet, risking losing their money if the platform is hacked, goes bankrupt, or freezes their account.
+2. **Unfair Odds & Hidden Fees:** Centralized bookmakers set the odds to guarantee themselves a profit (the "vig" or "juice") and often restrict profitable bettors.
+3. **Lack of Transparency:** It is difficult to verify if the betting pool is fair, or if the platform is honoring payouts without delays.
+
+**SportBet solves this by using Smart Contracts.** 
+Users never deposit funds into a centralized company account. Instead, bets are sent directly to a transparent, immutable smart contract. The odds are dynamically determined by the free market (parimutuel betting), and payouts are hardcoded into the blockchain, guaranteeing that winners will always be able to claim their funds instantly.
+
+---
+
+## 💡 What Is This? (Overview)
 
 Think of it like a betting pool between friends, but on the blockchain:
 
-1. **An event gets created** — e.g. "Manchester Utd vs Arsenal"
+1. **An admin creates an event** — e.g. "Manchester Utd vs Arsenal"
 2. **Users place bets** — pick a side (Home Win, Away Win, or Draw) and put up ETH
 3. **All bets go into a shared pool** on a smart contract — nobody controls the money
-4. **When the game ends**, a Chainlink Oracle fetches the real score from SportsData.io
+4. **When the game ends**, the admin resolves the market via the Admin Dashboard.
 5. **Winners split the losers' pool** — proportional to how much they bet
 
 No bookmaker sets the odds. The odds are determined by how much money is on each side. This is called **parimutuel (pool) betting**.
@@ -21,6 +33,9 @@ No bookmaker sets the odds. The odds are determined by how much money is on each
 ## 🏗️ How It Works (Simple Version)
 
 ```
+Admin creates a market
+    → Uses the Admin Dashboard to deploy a new PredictionMarket contract
+
 User opens the app
     → Connects MetaMask wallet
     → Browses upcoming sports events
@@ -31,9 +46,8 @@ User opens the app
 ⏳ Game happens in real life...
 
 Game ends (Arsenal wins 2-1)
-    → Chainlink Automation detects the deadline has passed
-    → Chainlink Functions calls SportsData.io API to get the final score
-    → Oracle sends the result back to the smart contract
+    → Admin clicks "Resolve Market" on the Admin Dashboard
+    → Admin selects the winning outcome
     → Smart contract marks the market as "Resolved"
 
 Winners come back to the app
@@ -63,17 +77,10 @@ The project has **4 main layers**:
 │                         │  │                        │
 │  • PredictionMarket.sol │  │  • Event schedules     │
 │  • MarketFactory.sol    │  │  • Bet history cache   │
-│  • OracleClient.sol     │  │  • User profiles       │
-└──────────────▲──────────┘  │  • Listens to chain    │
-               │              │    events & syncs DB   │
-       ┌───────┴────────┐    └────────────────────────┘
-       │  CHAINLINK      │
-       │  ORACLE          │
-       │                  │
-       │  Fetches real    │
-       │  scores from     │
-       │  SportsData.io   │
-       └──────────────────┘
+└──────────────▲──────────┘  │  • User profiles       │
+               │             │  • Listens to chain    │
+          Admin Action       │    events & syncs DB   │
+                             └────────────────────────┘
 ```
 
 ### Frontend (`frontend/`)
@@ -84,17 +91,16 @@ The user-facing app. Built with React, Vite, and TailwindCSS.
 - **Browse events** — see upcoming matches with live odds
 - **Place bets** — sends a transaction to the smart contract via ethers.js
 - **Claim winnings** — after a match resolves, winners withdraw their share
-- **No account creation needed** — your wallet IS your identity
+- **Admin Dashboard** — create, pause, and resolve markets directly from the UI
 
 ### Smart Contracts (`contracts/`)
 
-The core logic lives on the Ethereum blockchain. Nobody can tamper with it.
+The core logic lives on the Ethereum blockchain (currently deployed to a local Hardhat node).
 
 | Contract | What It Does |
 |---|---|
 | **PredictionMarket.sol** | Holds the betting pool for a single event. Accepts bets, tracks who bet what, and pays out winners. |
 | **MarketFactory.sol** | A factory that creates new PredictionMarket contracts. One market per sporting event. Keeps a registry of all markets. |
-| **OracleClient.sol** | Talks to Chainlink to fetch real-world sports results and triggers market resolution. |
 
 **How the betting math works (parimutuel):**
 
@@ -118,22 +124,6 @@ Your profit: 2 ETH (2x return).
 
 The more people bet on one side, the lower the payout. The odds balance themselves naturally.
 
-### Oracle — Chainlink + SportsData.io (`contracts/scripts/`)
-
-The oracle is the bridge between the blockchain and the real world. Smart contracts can't browse the internet, so we need Chainlink to fetch sports results for us.
-
-```
-How it works:
-
-1. Chainlink Automation monitors event deadlines
-2. When a game should be over, it triggers a request
-3. Chainlink Functions runs a small JavaScript snippet on decentralized nodes
-4. That snippet calls the SportsData.io API → gets the final score
-5. The result is sent back on-chain to OracleClient.sol
-6. OracleClient calls PredictionMarket.resolve() with the winning outcome
-```
-
-
 ### Backend (`backend/`)
 
 An Express.js API server with a MySQL database. This handles stuff that doesn't need to be on-chain:
@@ -152,50 +142,29 @@ Why not put everything on-chain? Because reading blockchain data is slow and exp
 | Layer | Technology | Why |
 |---|---|---|
 | **Smart Contracts** | Solidity, Hardhat, OpenZeppelin | Industry standard for Ethereum development |
-| **Oracle** | Chainlink Functions + Automation | Decentralized, tamper-proof data feeds |
-| **Sports Data** | SportsData.io (sandbox) | Real sports data API with free developer tier |
 | **Frontend** | React 18, Vite, TailwindCSS, ethers.js v6 | Fast dev experience, direct wallet interaction |
 | **Backend** | Express.js, TypeScript, Prisma ORM | Clean REST API with type-safe database access |
 | **Database** | MySQL | Reliable relational data storage |
 | **Wallet** | MetaMask | Most popular Ethereum wallet |
-| **Testnet** | Sepolia | Free Ethereum test network for development (see below) |
 
 ---
 
-## 🧪 What Is Sepolia? (Testnets Explained)
+## 🧪 Development Environment (Docker)
 
-Ethereum has two types of networks:
+The entire application runs seamlessly using Docker Compose.
 
-| | **Mainnet** | **Testnet (Sepolia)** |
-|---|---|---|
-| **Real money?** | ✅ Yes — real ETH with real value | ❌ No — fake ETH worth nothing |
-| **Cost to use?** | 💰 Every transaction costs gas fees | 🆓 Completely free |
-| **Who uses it?** | Real users, real apps | Developers testing their code |
-| **How to get ETH?** | Buy it on exchanges | Get it free from "faucets" (websites that give you test ETH) |
-| **Permanent?** | Yes — mainnet is forever | Testnets can be shut down and replaced |
-
-**Think of it like this:** Sepolia is a practice server for Ethereum. It works exactly like the real thing — same smart contracts, same MetaMask, same transactions — but with play money. This lets us build, test, and break things without losing real money.
-
-**Why Sepolia specifically?** Ethereum has had several testnets over the years (Ropsten, Rinkeby, Goerli — all deprecated). **Sepolia is the current recommended testnet** as of 2024+. It's maintained by the Ethereum Foundation and is the most reliable option.
-
-### How to get free testnet ETH and LINK
-
-| What | Where | How much |
-|---|---|---|
-| **Sepolia ETH** | [sepoliafaucet.com](https://sepoliafaucet.com) or [cloud.google.com/web3/faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia) | Usually 0.5 ETH per day |
-| **Testnet LINK** | [faucets.chain.link](https://faucets.chain.link) | 20 LINK per request |
-
-You just paste your wallet address, click a button, and the test tokens show up in your MetaMask. No payment, no signup (some faucets require a free Alchemy account).
-
-### Our development flow
-
-```
-1. Write & test contracts locally (Hardhat local node — instant, no network needed)
-2. Deploy to Sepolia testnet (test with real wallets, Chainlink, the full flow)
-3. When everything works → deploy to Ethereum mainnet (real money, real users)
+### Quick Start
+```bash
+# Start all services (MySQL, Hardhat Node, Backend, Frontend)
+docker compose up -d
 ```
 
-We're at step 1-2. Mainnet deployment is Phase 4.
+Once running:
+- **Frontend App**: `http://localhost:5173`
+- **Backend API**: `http://localhost:3001`
+- **Hardhat Node**: `http://localhost:8545`
+
+You can connect your MetaMask to the local Hardhat network (`http://localhost:8545` with chain ID `31337`) to interact with the DApp locally without spending real money.
 
 ---
 
@@ -205,9 +174,9 @@ We're at step 1-2. Mainnet deployment is Phase 4.
 sport_betting/
 │
 ├── contracts/          # Solidity smart contracts (Hardhat project)
-│   ├── contracts/      # .sol files (PredictionMarket, MarketFactory, OracleClient)
+│   ├── contracts/      # .sol files (PredictionMarket, MarketFactory)
 │   ├── test/           # Contract tests
-│   ├── scripts/        # Deploy scripts + Chainlink Functions JS source
+│   ├── scripts/        # Deploy scripts
 │   └── hardhat.config.ts
 │
 ├── backend/            # Express.js REST API
@@ -219,7 +188,7 @@ sport_betting/
 │   ├── src/            # Components, pages, hooks, context
 │   └── package.json
 │
-└── README.md           # You are here
+└── docker-compose.yml  # Local dev orchestration
 ```
 
 ---
@@ -232,47 +201,20 @@ Unlike traditional bookmakers who set odds, parimutuel betting pools all bets to
 ### Smart Contracts
 Self-executing code on the blockchain. Once deployed, nobody (not even the creator) can change the rules. The betting logic, payouts, and fund custody are all handled by code — not by a company.
 
-### Chainlink Oracle
-Smart contracts can't access the internet. Chainlink is a decentralized network of nodes that fetches real-world data (like sports scores) and delivers it on-chain in a trustworthy way.
-
 ### MetaMask
 A browser extension that acts as your Ethereum wallet. It holds your private keys and signs transactions. When you place a bet, MetaMask asks you to confirm before any money moves.
 
 ---
 
-## 🚀 Getting Started
-
-> Coming soon — the project is under active development.
-
-### Prerequisites
-- Node.js 18+
-- MetaMask browser extension
-- MySQL database
-- Free accounts: [SportsData.io](https://sportsdata.io), [Alchemy](https://alchemy.com) (for Sepolia RPC)
-
-### Quick Start
-```bash
-# Smart contracts
-cd contracts && npm install && npx hardhat test
-
-# Backend
-cd backend && npm install && npm run dev
-
-# Frontend
-cd frontend && npm install && npm run dev
-```
-
----
-
 ## 🏁 The End Stage: What is this project considered as?
 
-Upon completion of the current implementation plan, this project will be considered a **Fully-Functional Testnet MVP (Minimum Viable Product)** or a **Production-Grade Proof of Concept (PoC)**. 
+Upon completion, this project serves as a **Local-First Web3 Proof of Concept (PoC)**. 
 
-While it will have all the architectural components of a real-world, enterprise-level Web3 application, it is deliberately scoped for a test environment. Specifically:
+While it has all the architectural components of a real-world Web3 application, it is deliberately scoped for a local testing environment. Specifically:
 
-1. **Network Status:** It will operate on the **Sepolia Testnet** using fake ETH, meaning no real money is at risk. 
-2. **Oracle Data:** It will use the **SportsData.io Developer Sandbox**, which provides real API structures but is meant for development, not commercial production.
-3. **Architecture:** It will boast a complete, production-ready architecture (Smart Contracts + Chainlink + Express/MySQL + React). If you wanted to move to Mainnet (real money), you would simply change the RPC URLs, deploy the contracts to Ethereum Mainnet, and purchase a commercial SportsData.io API key.
+1. **Network Status:** It operates on a **Local Hardhat Network** using fake ETH, meaning no real money is at risk. 
+2. **Oracle Data:** It uses an **Admin Dashboard** for manual resolution rather than a decentralized oracle like Chainlink, simplifying the testing flow.
+3. **Architecture:** It boasts a complete, production-ready full-stack architecture (Smart Contracts + Express/MySQL + React). To move to Mainnet (real money), one would change the RPC URLs, deploy the contracts to Ethereum Mainnet, and integrate an Oracle for automatic resolution.
 
 In short: **It is a complete, portfolio-ready Web3 dApp that safely simulates a high-stakes, real-world betting platform.**
 

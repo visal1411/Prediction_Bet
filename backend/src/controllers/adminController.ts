@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
-import { v4 as uuidv4 } from 'uuid';
 
 export const createMarket = async (req: Request, res: Response) => {
   try {
@@ -45,5 +44,22 @@ export const resolveMarket = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to resolve market' });
+  }
+};
+
+export const updateMarketStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const event = await prisma.event.update({
+      where: { id },
+      data: { status },
+    });
+
+    res.json(event);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update market status' });
   }
 };

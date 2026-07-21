@@ -1,7 +1,9 @@
-import { ShoppingBag, X, Trash2, ChevronRight } from 'lucide-react';
+import { ShoppingBag, X, Trash2, ChevronRight, Loader2 } from 'lucide-react';
 import { useBetSlip } from '../../context/BetSlipContext';
 import { useWallet } from '../../context/Web3Context';
 import { useState } from 'react';
+import { ethers } from 'ethers';
+import { getMarketContract } from '../../app/contracts';
 
 const QUICK_STAKES = [5, 10, 25, 50];
 
@@ -11,22 +13,56 @@ export default function BetSlip() {
     totalStake, potentialPayout, isOpen, toggleOpen,
   } = useBetSlip();
 
-  const { account, connectWallet } = useWallet();
+  const { account, connectWallet, signer } = useWallet();
   const [betPlaced, setBetPlaced] = useState(false);
+  const [isBetting, setIsBetting] = useState(false);
+  const [betStatus, setBetStatus] = useState<string>('');
 
-  const handlePlaceBet = () => {
+  const handlePlaceBet = async () => {
     if (selections.length === 0) return;
-    if (!account) {
+    if (!account || !signer) {
       alert("Please connect your wallet first to place a decentralized bet.");
       connectWallet();
       return;
     }
     
-    setBetPlaced(true);
-    setTimeout(() => {
-      setBetPlaced(false);
-      clearAll();
-    }, 2500);
+    setIsBetting(true);
+    let successCount = 0;
+    
+    try {
+      for (let i = 0; i < selections.length; i++) {
+        const sel = selections[i];
+        if (!sel.marketAddress || sel.outcomeIndex === undefined) {
+          alert(`Skipping ${sel.selection} (${sel.market}) as it's not a supported blockchain market yet.`);
+          continue;
+        }
+
+        setBetStatus(`Confirming bet ${i + 1} of ${selections.length} in wallet...`);
+        
+        const contract = getMarketContract(sel.marketAddress, signer);
+        const value = ethers.parseEther(sel.stake.toString());
+        
+        setBetStatus(`Placing bet ${i + 1} of ${selections.length} on blockchain...`);
+        const tx = await contract.placeBet(sel.outcomeIndex, { value });
+        await tx.wait();
+        
+        successCount++;
+      }
+      
+      if (successCount > 0) {
+        setBetPlaced(true);
+        setTimeout(() => {
+          setBetPlaced(false);
+          clearAll();
+        }, 2500);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to place bet: " + (err.reason || err.message));
+    } finally {
+      setIsBetting(false);
+      setBetStatus('');
+    }
   };
 
   return (
@@ -145,7 +181,7 @@ export default function BetSlip() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[var(--color-text-muted)] text-xs">Stake</span>
                         <span className="text-[var(--color-accent-green)] text-xs font-semibold">
-                          To Win: {(sel.stake * 2).toFixed(2)} ETH
+                          To Win: {sel.odds > 0 ? (sel.stake * sel.odds).toFixed(2) + ' ETH' : 'Entire Pool!'}
                         </span>
                       </div>
                       <div className="flex items-center bg-[var(--color-sidebar-bg)] border border-[var(--color-border)] rounded-lg overflow-hidden mb-2">
@@ -188,9 +224,20 @@ export default function BetSlip() {
 
                 <button
                   onClick={handlePlaceBet}
-                  className="w-full bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] text-[var(--color-sidebar-bg)] font-black py-3 rounded-xl transition-all duration-200 text-sm tracking-wide shadow-lg shadow-green-500/20 active:scale-95"
+                  disabled={isBetting}
+                  className="w-full bg-[var(--color-accent-green)] hover:bg-[var(--color-accent-green-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--color-sidebar-bg)] font-black py-3 rounded-xl transition-all duration-200 text-sm tracking-wide shadow-lg shadow-green-500/20 active:scale-95 flex flex-col items-center justify-center gap-1"
                 >
-                  PLACE BET · {totalStake.toFixed(2)} ETH
+                  {isBetting ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>PROCESSING...</span>
+                      </div>
+                      {betStatus && <span className="text-[10px] font-medium opacity-80">{betStatus}</span>}
+                    </>
+                  ) : (
+                    <span>PLACE BET · {totalStake.toFixed(2)} ETH</span>
+                  )}
                 </button>
               </div>
             </>

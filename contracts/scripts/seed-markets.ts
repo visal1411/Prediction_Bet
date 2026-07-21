@@ -21,23 +21,22 @@ dotenv.config();
 
 const DEMO_MATCHES = [
   {
-    key:      "DEMO_MATCH_001",
-    teamHome: "Crypto Bulls",
-    teamAway: "Chain Bears",
+    key:      "EVT-001",
+    teamHome: "Manchester Utd",
+    teamAway: "Arsenal",
     sport:    "Football",
-    league:   "Blockchain Premier League",
-    outcomes: ["Crypto Bulls Win", "Chain Bears Win", "Draw"],
-    // Betting open for next 30 minutes — extend if your demo takes longer
-    deadlineMinutesFromNow: 30,
+    league:   "Premier League",
+    outcomes: ["Manchester Utd Win", "Arsenal Win", "Draw"],
+    deadlineMinutesFromNow: 3000,
   },
   {
-    key:      "DEMO_MATCH_002",
-    teamHome: "ETH United",
-    teamAway: "BTC City",
+    key:      "EVT-002",
+    teamHome: "Barcelona",
+    teamAway: "Atletico Madrid",
     sport:    "Football",
-    league:   "Blockchain Premier League",
-    outcomes: ["ETH United Win", "BTC City Win", "Draw"],
-    deadlineMinutesFromNow: 60,
+    league:   "La Liga",
+    outcomes: ["Barcelona Win", "Atletico Madrid Win", "Draw"],
+    deadlineMinutesFromNow: 6000,
   },
 ];
 

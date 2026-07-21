@@ -31,6 +31,8 @@ export interface Match {
   score2: string;
   ratio: { win1: number; draw: number | null; win2: number };
   isLive?: boolean;
+  isClosed?: boolean;
+  marketAddress?: string;
 }
 
 export const upcomingMatches: Match[] = [

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Calendar, Clock, MapPin, X } from 'lucide-react';
-import { getMatchDetail } from '../data/matchDetailData';
-import { useState } from 'react';
+import { ArrowLeft, Calendar, Clock, MapPin, X, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { fetchEventById, mapEventToMatchDetail } from '../api/events';
 import { useBetSlip } from '../context/BetSlipContext';
 
 type FormResult = 'W' | 'D' | 'L';
@@ -44,8 +44,31 @@ function StatBar({ label, val1, val2 }: { label: string; val1: string | number; 
 export default function MatchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const detail = getMatchDetail(Number(id));
   const { addBet, hasBet, updateStake } = useBetSlip();
+  const [detail, setDetail] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [recentBets, setRecentBets] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      if (id) {
+        // We need to import fetchEventBets! I'll do this in the next replacement
+        const { fetchEventBets } = await import('../api/events');
+        const [rawEvent, bets] = await Promise.all([
+          fetchEventById(id),
+          fetchEventBets(id)
+        ]);
+        if (rawEvent) {
+          setDetail(mapEventToMatchDetail(rawEvent));
+        }
+        setRecentBets(bets);
+      }
+      setLoading(false);
+    };
+    loadData();
+  }, [id]);
+
   const [expandedMarket, setExpandedMarket] = useState<string | null>('Full Time Result');
   const [showBetModal, setShowBetModal] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<any>(null);
@@ -58,6 +81,14 @@ export default function MatchDetailPage() {
       setModalStake(10);
     }, 300);
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center px-8 py-20 text-white animate-pulse font-bold">
+        Loading Match Details...
+      </div>
+    );
+  }
 
   if (!detail) {
     return (
@@ -118,6 +149,11 @@ export default function MatchDetailPage() {
                 <div className="flex items-center gap-1.5 bg-red-500/20 border border-red-500/40 rounded-full px-3 py-1.5 mx-auto w-fit">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                   <span className="text-red-400 text-xs font-bold tracking-wider">LIVE ODDS</span>
+                </div>
+              ) : match.isClosed ? (
+                <div className="flex items-center gap-1.5 bg-gray-500/20 border border-gray-500/40 rounded-full px-3 py-1.5 mx-auto w-fit">
+                  <span className="w-2 h-2 rounded-full bg-gray-500" />
+                  <span className="text-gray-400 text-xs font-bold tracking-wider">CLOSED</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 bg-[var(--color-accent-blue)]/20 border border-[var(--color-accent-blue)]/40 rounded-full px-3 py-1.5 mx-auto w-fit">
@@ -306,6 +342,7 @@ export default function MatchDetailPage() {
                         return (
                           <button
                             key={opt.label}
+                            disabled={match.isClosed}
                             onClick={() => addBet({
                               id: betId,
                               matchId: detail.id,
@@ -313,16 +350,20 @@ export default function MatchDetailPage() {
                               sport: 'FOOTBALL', // Could dynamically check league later
                               market: market.title,
                               selection: opt.label,
-                              odds: opt.odds
+                              odds: opt.odds,
+                              marketAddress: match.marketAddress,
+                              outcomeIndex: market.title === 'Full Time Result' || market.title === 'Match Winner' ? (opt.label === team1.shortName || opt.label === team1.name ? 0 : opt.label === team2.shortName || opt.label === team2.name ? 1 : 2) : undefined
                             })}
                             className={`flex flex-col items-center py-3 px-2 rounded-lg border transition-all duration-200 ${
-                              isSelected
-                                ? 'bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)] text-white shadow-lg shadow-blue-500/20'
-                                : 'bg-[var(--color-primary-bg)] border-[var(--color-border)] hover:border-gray-500 text-[var(--color-text-muted)] hover:text-white'
+                              match.isClosed 
+                                ? 'bg-[var(--color-sidebar-bg)] border-[var(--color-border)] opacity-50 cursor-not-allowed'
+                                : isSelected
+                                ? 'bg-[var(--color-accent-blue)] border-[var(--color-accent-blue)] text-white shadow-lg shadow-blue-500/20 cursor-pointer'
+                                : 'bg-[var(--color-primary-bg)] border-[var(--color-border)] hover:border-gray-500 text-[var(--color-text-muted)] hover:text-white cursor-pointer'
                             }`}
                           >
                             <span className="text-xs font-bold uppercase tracking-wider mb-1">{opt.label}</span>
-                            <span className="text-[10px] text-[var(--color-text-muted)] font-bold opacity-70 group-hover:text-white transition-colors">{opt.odds.toFixed(2)}x</span>
+                            <span className={`text-[10px] font-bold ${match.isClosed ? 'text-gray-600' : 'text-[var(--color-text-muted)] opacity-70 group-hover:text-white transition-colors'}`}>{opt.odds.toFixed(2)}x</span>
                           </button>
                         );
                       })}
@@ -333,6 +374,59 @@ export default function MatchDetailPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Recent Bettors Section */}
+      <div className="mt-8 mb-12">
+        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <Users className="text-[var(--color-text-muted)]" size={24} /> Recent Bettors
+        </h3>
+        
+        {recentBets.length === 0 ? (
+          <div className="bg-[var(--color-primary-bg)] border border-[var(--color-border)] rounded-2xl p-8 text-center">
+            <p className="text-[var(--color-text-muted)]">No bets placed on this market yet. Be the first!</p>
+          </div>
+        ) : (
+          <div className="bg-[var(--color-primary-bg)] border border-[var(--color-border)] rounded-2xl overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[var(--color-sidebar-bg)] border-b border-[var(--color-border)]">
+                <tr>
+                  <th className="px-6 py-4 font-bold text-[var(--color-text-muted)]">Bettor Wallet</th>
+                  <th className="px-6 py-4 font-bold text-[var(--color-text-muted)]">Predicted Outcome</th>
+                  <th className="px-6 py-4 font-bold text-[var(--color-text-muted)] text-right">Stake (ETH)</th>
+                  <th className="px-6 py-4 font-bold text-[var(--color-text-muted)] text-right">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {recentBets.map(bet => {
+                  const outName = bet.outcome === 0 ? team1.name : bet.outcome === 1 ? team2.name : 'Draw';
+                  const amountEth = (Number(bet.amountWei) / 1e18).toFixed(4);
+                  return (
+                    <tr key={bet.id} className="hover:bg-[var(--color-card-hover)] transition-colors">
+                      <td className="px-6 py-4 font-mono text-[var(--color-accent-blue)] flex items-center gap-3">
+                        <img 
+                          src={`https://api.dicebear.com/7.x/identicon/svg?seed=${bet.walletAddress}&backgroundColor=161a23`} 
+                          alt="avatar" 
+                          className="w-8 h-8 rounded-full border border-[var(--color-border)]"
+                        />
+                        {bet.walletAddress.slice(0, 6)}...{bet.walletAddress.slice(-4)}
+                      </td>
+                      <td className="px-6 py-4 text-white font-medium">
+                        {outName}
+                      </td>
+                      <td className="px-6 py-4 text-[var(--color-accent-green)] font-bold text-right">
+                        {amountEth}
+                      </td>
+                      <td className="px-6 py-4 text-[var(--color-text-muted)] text-right text-xs">
+                        {new Date(bet.createdAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Bet Modal */}
@@ -378,10 +472,11 @@ export default function MatchDetailPage() {
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[var(--color-text-muted)] text-sm">Stake Amount</span>
                   <span className="text-[var(--color-accent-green)] font-bold">
-                    To Win: {(
-                      modalStake *
-                      (100 / match.ratio[selectedPrediction.idSuffix as 'win1'|'draw'|'win2'])
-                    ).toFixed(2)} ETH
+                    To Win: {
+                      match.ratio[selectedPrediction.idSuffix as 'win1'|'draw'|'win2'] > 0
+                        ? (modalStake * (100 / match.ratio[selectedPrediction.idSuffix as 'win1'|'draw'|'win2'])).toFixed(2) + ' ETH'
+                        : 'Entire Pool!'
+                    }
                   </span>
                 </div>
                 
@@ -426,7 +521,9 @@ export default function MatchDetailPage() {
                       sport: match.sport ? match.sport.toUpperCase() : 'FOOTBALL',
                       market: 'Match Winner',
                       selection: selectedPrediction.optLabel,
-                      odds: customOdds
+                      odds: customOdds,
+                      marketAddress: match.marketAddress,
+                      outcomeIndex: selectedPrediction.idSuffix === 'win1' ? 0 : selectedPrediction.idSuffix === 'win2' ? 1 : 2
                     });
                     updateStake(betId, modalStake);
                     closeBetModal();
